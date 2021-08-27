@@ -408,6 +408,19 @@
   :group 'projectile-unreal
   :type  '(repeat string))
 
+(defcustom projectile-unreal-epic-games-root-dir
+  nil
+  "A root directory that contains Unreal Engine installations.
+
+The 'projectile-unreal' will use the directory to construct path to the Unreal Engine of the project specific version.
+
+If the value of this variable is nil, the 'projectile-unreal' will try to use a default location, depending on your platform:
+- macOS:     /Users/Shared/Epic Games
+- GNU/Linux: TBD
+- windows:   TBD"
+  :group 'projectile-unreal
+  :type  'string)
+
 ;; TODO: *A*ctors
 ;;       *I*nterfaces
 ;;       *U*Objects
@@ -455,8 +468,15 @@
 	      (puthash cache-key root projectile-unreal-cache-data)
 	      root))))))
 
+(defun projectile-unreal-non-source-directories ()
+  (seq-filter
+   (lambda (dir)
+     (and (file-directory-p (expand-file-name dir (projectile-project-root)))
+	  (not (string= "Source" dir))))
+   (directory-files (projectile-unreal-root))))
+
 (defun projectile-unreal-project ()
-  "Return Unreal Engine project file name relative to the project root."
+  "Return Unreal Engine project file name."
   (let* ((cache-key   (projectile-unreal-cache-key "project-file"))
 	 (cache-value (gethash cache-key projectile-unreal-cache-data)))
     (or cache-value
@@ -486,17 +506,65 @@
   (when-let* ((project (projectile-unreal-project)))
     (file-name-base project)))
 
-(defun projectile-unreal-non-source-directories ()
-  (seq-filter
-   (lambda (dir)
-     (and (file-directory-p (expand-file-name dir (projectile-project-root)))
-	  (not (string= "Source" dir))))
-   (directory-files (projectile-unreal-root))))
+(defun projectile-unreal-epic-games-root-dir ()
+  "Return the name of directory that contains various versions of Unreal Engine."
+  (or projectile-unreal-epic-games-root-dir)
+  (pcase system-type
+    ('darwin "/Users/Shared/Epic Games")
+    (type (error "Please set Epic Games root directory using projectile-unreal-ue-installation-root-dir"))))
 
-(defun projectile-unreal-project-compile-command ()
+(defun projectile-unreal-engine-root (version)
+  "Get root directory of the Unreal Engine of the given VERSION."
+  (expand-file-name (concat "UE_" version)
+		    (projectile-unreal-epic-games-root-dir)))
+
+(defun projectile-unreal-engine-build-script (engine-version)
+  "Get path to the Unreal Engine build script specific to the current platform."
+  (let ((engine-root (projectile-unreal-engine-root engine-version)))
+    (pcase system-type
+      ('darwin (expand-file-name "Engine/Build/BatchFiles/Mac/Build.sh" engine-root))
+      (type (error "To be implemented")))))
+
+(defun projectile-unreal-project-compilation-cmd ()
   "Get the compilation command for the current Unreal Engine project."
-  "omnomnom")
+  ;; TODO: Extend to GNU/Linux and windows
+  (let* ((project (projectile-unreal-parse-project))
+	 (engine-version (alist-get 'engine-version project)))
+    (concat "cd "
+	    (shell-quote-argument (projectile-unreal-engine-root engine-version))
+	    " && bash "
+	    (shell-quote-argument (projectile-unreal-engine-build-script engine-version))
+	    " "
+	    (projectile-unreal-project-name)
+	    "Editor"
+	    " Mac"
+	    " Development"
+	    " -project="
+	    (shell-quote-argument (projectile-unreal-project))
+	    " -game"
+	    " -progress"
+	    " -buildscw")))
 
+(defun projectile-unreal-project-configure-cmd ()
+  ;; TODO: Extend to GNU/Linux and windows
+  (let* ((project (projectile-unreal-parse-project))
+	 (engine-version (alist-get 'engine-version project)))
+    (concat "cd "
+	    (shell-quote-argument (projectile-unreal-engine-root engine-version))
+	    " && bash "
+	    (shell-quote-argument (projectile-unreal-engine-build-script engine-version))
+	    " -project="
+	    (shell-quote-argument (projectile-unreal-project))
+	    " -ProjectFiles"
+	    " -ProjectFileFormat"
+	    " -CMakefile"
+	    " && cd "
+	    (shell-quote-argument (projectile-unreal-root))
+	    " && mkdir -p .projectile-unreal-build" ;; TODO: make configurable
+	    " && cd .projectile-unreal-build"
+	    " && cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=YES -DCMAKE_BUILD_TYPE=Debug" ;; TODO: make cmake command configurable
+	    " && cd .."
+	    " && ln -fs .projectile-unreal-build/compile_commands.json .")))
 
 ;; TODO: Set current target and save it? Then use that for a compile command.
 
@@ -507,13 +575,22 @@
 ;; Add everything except Source to the ignore list automatically, i.e. +/Source
 ;; The file is in (projectile-dirconfig-file)
 
+;; TODO: Recommend to switch from alien mode
+;; Or. Maybe. Set project root to the Source dir?
+
 (defun projectile-unreal-mode-setup ()
   "Configure 'projectile-unreal-mode'."
   (setq projectile-globally-ignored-directories
 	(projectile-unreal-non-source-directories)
 
 	projectile-project-name
-	(projectile-unreal-project-name)))
+	(projectile-unreal-project-name)
+
+	projectile-project-compilation-cmd
+	(projectile-unreal-project-compilation-cmd)
+
+	projectile-project-configure-cmd
+	(projectile-unreal-project-configure-cmd)))
 
 ;;;###autoload
 (define-minor-mode projectile-unreal-mode
