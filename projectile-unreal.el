@@ -566,10 +566,10 @@ variable unless it is nil."
 (defun projectile-unreal-engine-build-script-rel ()
   "Return platform specific path to the build script relative to the engine directory."
   (pcase system-type
-    ('darwin    "Engine/Build/BatchFiles/Mac/Build.sh")
-    ('gnu/linux "Engine/Build/BatchFiles/Linux/Build.sh")
-    ('windows   "Engine/Build/BatchFiles/Build.bat")
-    (_          (error "Unsupported platform."))))
+    ('darwin     "Engine/Build/BatchFiles/Mac/Build.sh")
+    ('gnu/linux  "Engine/Build/BatchFiles/Linux/Build.sh")
+    ('windows-nt "Engine/Build/BatchFiles/Build.bat")
+    (_           (error "Unsupported platform."))))
 
 (defun projectile-unreal-engine-build-script (engine-version)
   "Return location of the Unreal Engine build script specific to the current platform and ENGINE-VERSION."
