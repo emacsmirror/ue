@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Subscribe to OnComponentBeginOverlap in a C++ file
+# key: usoncomponentbeginoverlap
+# --
+OnComponentBeginOverlap.AddDynamic(this, &${1:A}`(file-name-base)`::HandleBegin${2:Component}Overlap);

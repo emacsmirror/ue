@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: A visible UPROPERTY
+# key: upv
+# --
+/**
+ * $4
+ */
+UPROPERTY(VisibleEverywhere, Category="${1:`(file-name-base)`}")
+${2:int32} ${3:MyProperty};

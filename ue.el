@@ -446,9 +446,25 @@ of the Unreal Emacs project else nil."
 	    (puthash cache-key root ue-cache-data)
 	    root)))))
 
+;; Copied from yasnippet-snippets
+(defconst ue-snippets-dir
+  (expand-file-name
+   "snippets"
+   (file-name-directory
+    (cond
+     (load-in-progress load-file-name)
+     ((and (boundp 'byte-compile-current-file) byte-compile-current-file)
+      byte-compile-current-file)
+     (:else (buffer-file-name))))))
+
+(defun ue-maybe-enable-snippets ()
+  "Enable Unreal Engine snippets if yasnippet is available."
+  (when (require 'yasnippet nil t)
+    (add-to-list 'yas-snippet-dirs 'ue-snippets-dir t)
+    (yas-load-directory ue-snippets-dir t)))
+
 (defun ue-mode-setup ()
-  "Configure 'ue-mode'."
-  (message "(ue-mode-setup)"))
+  "Configure 'ue-mode'.")
 
 ;;;###autoload
 (define-minor-mode ue-mode

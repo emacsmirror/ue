@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: A TEXT macro
+# key: utext
+# --
+TEXT("${1:}");

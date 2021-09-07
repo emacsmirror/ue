@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Declare a module-level log category in a header file
+# key: ulh
+# --
+DECLARE_LOG_CATEGORY_EXTERN(Log${1:Category}, All, All);

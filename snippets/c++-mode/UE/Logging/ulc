@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Define a module-level log category in a cpp file
+# key: ulc
+# --
+DEFINE_LOG_CATEGORY(Log${1:Category});

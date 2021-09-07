@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Write a single UE_LOG line using the module-level log category
+# key: ull
+# --
+UE_LOG(Log${1:Category}, ${2:Warning}, TEXT("${3:Message}"));

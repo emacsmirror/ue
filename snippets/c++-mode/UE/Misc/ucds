@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: CreateDefaultSubobject
+# key: ucds
+# --
+CreateDefaultSubobject<${1:UStaticMeshComponent}>(TEXT("${2:Mesh}"));

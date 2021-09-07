@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: An editable UPROPERTY
+# key: upe
+# --
+/**
+ * $4
+ */
+UPROPERTY(EditDefaultsOnly, Category="${1:`(file-name-base)`}")
+${2:int32} ${3:MyProperty};

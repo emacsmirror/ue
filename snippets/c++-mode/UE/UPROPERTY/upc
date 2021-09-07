@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: A component UPROPERTY
+# key: upc
+# --
+/**
+ * $3
+ */
+UPROPERTY(VisibleDefaultsOnly, Category="Components")
+${1:USceneComponent}* ${2:My}Comp;

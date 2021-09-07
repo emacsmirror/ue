@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: A BlueprintPure member function
+# key: ufp
+# --
+/**
+ * $4
+ */
+UFUNCTION(BlueprintPure, Category="${1:`(file-name-base)`}")
+${2:float} ${3:MyFunction}() const;

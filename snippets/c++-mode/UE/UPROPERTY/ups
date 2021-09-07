@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: A TSubclassOf UPROPERTY
+# key: ups
+# --
+/**
+ * $4
+ */
+UPROPERTY(EditDefaultsOnly, Category="${1:`(file-name-base)`}")
+TSubclassOf<${2:AActor}> ${3:My}Class;
