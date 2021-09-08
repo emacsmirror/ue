@@ -1,5 +1,6 @@
 # -*- mode: snippet -*-
-# name: Define a module-level log category in a cpp file
+# name: DEFINE_LOG_CATEGORY
 # key: ulc
+# condition: (ue--yas-can-expand-p)
 # --
 DEFINE_LOG_CATEGORY(Log${1:Category});

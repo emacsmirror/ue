@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: An OnComponentBeginOverlap event handler definition in a C++ file
+# name: Define OnComponentBeginOverlap event handler
 # key: uconcomponentbeginoverlap
+# condition: (ue--yas-can-expand-p)
 # --
 void ${2:A}`(file-name-base)`::HandleBegin${1:Component}Overlap(
 	UPrimitiveComponent *OverlappedComponent,

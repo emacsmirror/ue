@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: A BlueprintCallable member function
+# name: UFUNCTION(BlueprintCallable)
 # key: uff
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $4

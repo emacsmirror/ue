@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: An OnComponentBeginOverlap event handler declaration in a header file
+# name: Declare OnComponentBeginOverlap event handler
 # key: uhoncomponentbeginoverlap
+# condition: (ue--yas-can-expand-p)
 # --
 UFUNCTION()
 void HandleBegin${1:Component}Overlap(

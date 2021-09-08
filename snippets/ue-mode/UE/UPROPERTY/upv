@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: A visible UPROPERTY
+# name: UPROPERTY(VisibleEverywhere)
 # key: upv
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $4

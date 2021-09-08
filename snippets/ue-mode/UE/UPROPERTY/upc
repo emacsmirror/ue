@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: A component UPROPERTY
+# name: Component UPROPERTY
 # key: upc
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $3

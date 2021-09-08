@@ -423,6 +423,11 @@
   :group 'ue
   :type  '(repeat string))
 
+(defcustom ue-expand-snippets t
+  "Enable Unreal Engine C++ yasnippet snippets."
+  :group 'ue
+  :type  'boolean)
+
 (defvar ue-root-directory ".uemacs"
   "The directory that is used to indentify Unreal Emacs project root.")
 
@@ -457,14 +462,22 @@ of the Unreal Emacs project else nil."
       byte-compile-current-file)
      (:else (buffer-file-name))))))
 
-(defun ue-maybe-enable-snippets ()
-  "Enable Unreal Engine snippets if yasnippet is available."
-  (when (require 'yasnippet nil t)
+(defun ue--register-snippets ()
+  "Add Unreal Engine C++ snippets to yasnippet if it is available."
+  (when (and ue-expand-snippets
+	 (require 'yasnippet nil t))
     (add-to-list 'yas-snippet-dirs 'ue-snippets-dir t)
     (yas-load-directory ue-snippets-dir t)))
 
+(defun ue--activate-snippets ()
+  "Instruct yasnippet to consider Unreal Engine C++ snippets for expansion."
+  (when (and ue-expand-snippets
+	     (require 'yasnippet nil t))
+    (yas-activate-extra-mode 'ue-mode)))
+
 (defun ue-mode-setup ()
-  "Configure 'ue-mode'.")
+  "Configure 'ue-mode'."
+  (ue--activate-snippets))
 
 ;;;###autoload
 (define-minor-mode ue-mode
@@ -490,8 +503,13 @@ of the Unreal Emacs project else nil."
   "Disable 'unreal-emacs-mode' minor mode."
   (ue-mode -1))
 
+;; Teach projectile how to recognize ue.el projects
 (projectile-register-project-type 'ue           (list ue-root-directory)
 				  :project-file ue-root-directory)
+
+;; Add Unreal Engine C++ snippets
+(with-eval-after-load "yasnippet"
+  (ue--register-snippets))
 
 (provide 'ue)
 

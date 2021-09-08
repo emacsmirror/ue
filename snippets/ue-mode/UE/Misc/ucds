@@ -1,5 +1,6 @@
 # -*- mode: snippet -*-
 # name: CreateDefaultSubobject
 # key: ucds
+# condition: (ue--yas-can-expand-p)
 # --
 CreateDefaultSubobject<${1:UStaticMeshComponent}>(TEXT("${2:Mesh}"));

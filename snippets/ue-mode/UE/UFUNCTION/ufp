@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: A BlueprintPure member function
+# name: UFUNCTION(BlueprintPure)
 # key: ufp
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $4

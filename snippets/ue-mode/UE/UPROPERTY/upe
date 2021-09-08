@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: An editable UPROPERTY
+# name: UPROPERTY(EditDefaultsOnly)
 # key: upe
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $4

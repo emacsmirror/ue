@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
-# name: A TSubclassOf UPROPERTY
+# name: TSubclassOf UPROPERTY
 # key: ups
+# condition: (ue--yas-can-expand-p)
 # --
 /**
  * $4
