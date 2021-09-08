@@ -1,12 +1,12 @@
 # ue.el
 ## Synopsis
 
-**ue** is a minor mode for working with [Unreal Engine](https://www.unrealengine.com/) projects in GNU Emacs in conjunction with [Unreal Emacs plug-in](https://gitlab.com/manenko/emacs-sourcecode-access).
-Internally it is based on [Projectile](https://github.com/bbatsov/projectile).
+**ue** is a minor mode for working with [Unreal Engine](https://www.unrealengine.com/) projects in GNU Emacs.
+It complements [Unreal Emacs plug-in](https://gitlab.com/manenko/emacs-sourcecode-access).
 
-It means that you can use Projectile's commands for greping (or acking) files, switching between alternating files, etc.
+Internally it is based on [Projectile](https://github.com/bbatsov/projectile). It means that you can use Projectile's commands for greping (or acking) files, switching between alternating files, etc.
 
-Compilation and running is not available yet but will be added in the future. This is a work-in-progress project, which means there are a lot of things to do.
+Compilation and running is not available yet but will be added in the future. This is a work-in-progress project.
 
 ## Features
 
