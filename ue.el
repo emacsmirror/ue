@@ -1,5 +1,4 @@
-;;; -*- lexical-binding: t; -*-
-;;; ue.el --- Minor mode for Unreal Engine projects
+;;; ue.el --- Minor mode for Unreal Engine projects -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021 Oleksandr Manenko
 
@@ -111,11 +110,13 @@
 (defvar ue--font-lock-generated-body-macro nil)
 
 (defun ue--generate-font-lock-attributes ()
+  "Generate font-lock config for Unreal attributes."
   (let ((attributes-regexp (regexp-opt ue-attributes 'words)))
     (setq ue--font-lock-attributes
 	  `((,attributes-regexp (0 ue-attribute-face))))))
 
 (defun ue--generate-font-lock-generated-body-macro ()
+  "Generate font-lock config for GENERATED_BODY macro and friends."
   (let ((generated-body-macro-regexp (regexp-opt ue-generated-body-macro 'words)))
     (setq ue--font-lock-generated-body-macro
 	  `((,generated-body-macro-regexp (0 ue-generated-body-macro-face))))))
@@ -184,7 +185,7 @@
   (ue--activate-snippets))
 
 (defun ue-mode-deinit ()
-  "Cleanup changes made by 'ue-mode."
+  "Cleanup change made by 'ue-mode."
   (when (derived-mode-p 'c++-mode)
     (ue-font-lock-remove-keywords)
     (font-lock-flush)))
@@ -211,7 +212,7 @@
   ue-on)
 
 (defun ue-off ()
-  "Disable 'unreal-emacs-mode' minor mode."
+  "Disable 'ue-mode' minor mode."
   (ue-mode -1))
 
 ;; Teach projectile how to recognize ue.el projects
