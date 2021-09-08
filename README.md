@@ -12,7 +12,8 @@ Compilation and running is not available yet but will be added in the future. Th
 
 1. Syntax highlighting for Unreal attributes (`UCLASS`, `USTRUCT`, etc.) and `GENERATED_*BODY` macro.
 2. Project navigation through `projectile`.
-3. TBD
+3. Unreal Engine code snippets
+4. TBD
 
 ## Setup
 
