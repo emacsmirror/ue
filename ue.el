@@ -38,8 +38,6 @@
 ;;; Code:
 
 (require 'projectile)
-(require 'json)
-(require 'seq)
 
 ;; TODO: *A*ctors
 ;;       *I*nterfaces
@@ -64,407 +62,24 @@
   :prefix "ue-"
   :group  'projectile)
 
+(defcustom ue-expand-snippets t
+  "Enable Unreal Engine C++ yasnippet snippets."
+  :group 'ue
+  :type  'boolean)
+
 (defcustom ue-attributes
   (eval-when-compile
     (sort '("UCLASS"
-	   "UDELEGATE"
-	   "UENUM"
-	   "UFUNCTION"
-	   "UINTERFACE"
-	   "UMETA"
-	   "UPARAM"
-	   "UPROPERTY"
-	   "USTRUCT")
-	 #'ue--c++-string-length>))
+	    "UDELEGATE"
+	    "UENUM"
+	    "UFUNCTION"
+	    "UINTERFACE"
+	    "UMETA"
+	    "UPARAM"
+	    "UPROPERTY"
+	    "USTRUCT")
+	  #'ue--c++-string-length>))
   "List of Unreal C++ attributes."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-class-specifiers
-  (eval-when-compile
-    (sort '("Abstract"
-	    "AdvancedClassDisplay"
-	    "AutoCollapseCategories"
-	    "AutoExpandCategories"
-	    "Blueprintable"
-	    "BlueprintType"
-	    "ClassGroup"
-	    "CollapseCategories"
-	    "Config"
-	    "Const"
-	    "ConversionRoot"
-	    "CustomConstructor"
-	    "DefaultToInstanced"
-	    "DependsOn"
-	    "Deprecated"
-	    "DontAutoCollapseCategories"
-	    "DontCollapseCategories"
-	    "EditInlineNew"
-	    "HideCategories"
-	    "HideDropdown"
-	    "HideFunctions"
-	    "Intrinsic"
-	    "MinimalAPI"
-	    "NoExport"
-	    "NonTransient"
-	    "NotBlueprintable"
-	    "NotPlaceable"
-	    "PerObjectConfig"
-	    "Placeable"
-	    "ShowCategories"
-	    "ShowFunctions"
-	    "Transient"
-	    "Within"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UCLASS specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-class-metadata-specifiers
-  (eval-when-compile
-    (sort '("BlueprintSpawnableComponent"
-	    "BlueprintThreadSafe"
-	    "ChildCannotTick"
-	    "ChildCanTick"
-	    "DeprecatedNode"
-	    "DeprecationMessage"
-	    "DisplayName"
-	    "DontUseGenericSpawnObject"
-	    "ExposedAsyncProxy"
-	    "IgnoreCategoryKeywordsInSubclasses"
-	    "IsBlueprintBase"
-	    "KismetHideOverrides"
-	    "ProhibitedInterfaces"
-	    "RestrictedToClasses"
-	    "ShortToolTip"
-	    "ShowWorldContextPin"
-	    "UsesHierarchy"
-	    "ToolTip")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UCLASS metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-enum-specifiers
-  (eval-when-compile
-    (sort '("meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UENUM specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-enum-metadata-specifiers
-  (eval-when-compile
-    (sort '("Bitflags"
-	    "Experimental"
-	    "ScriptName"
-	    "ToolTip")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UENUM metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-enum-enumerator-specifiers
-  (eval-when-compile
-    (sort '("DisplayName"
-	    "Hidden"
-	    "ToolTip")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UMETA specifiers used for UENUM enumerators."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-function-specifiers
-  (eval-when-compile
-    (sort '("BlueprintAuthorityOnly"
-	    "BlueprintCallable"
-	    "BlueprintCosmetic"
-	    "BlueprintImplementableEvent"
-	    "BlueprintNativeEvent"
-	    "BlueprintPure"
-	    "CallInEditor"
-	    "Category"
-	    "Client"
-	    "CustomThunk"
-	    "Exec"
-	    "NetMulticast"
-	    "Reliable"
-	    "SealedEvent"
-	    "ServiceRequest"
-	    "ServiceResponse"
-	    "Server"
-	    "Unreliable"
-	    "WithValidation"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UFUNCTION specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-function-metadata-specifiers
-  (eval-when-compile
-    (sort '("AdvancedDisplay"
-	    "ArrayParm"
-	    "ArrayTypeDependentParams"
-	    "AutoCreateRefTerm"
-	    "BlueprintAutocast"
-	    "BlueprintInternalUseOnly"
-	    "BlueprintProtected"
-	    "CallableWithoutWorldContext"
-	    "CommutativeAssociativeBinaryOperator"
-	    "CompactNodeTitle"
-	    "CustomStructureParam"
-	    "DefaultToSelf"
-	    "DeprecatedFunction"
-	    "DeprecationMessage"
-	    "DeterminesOutputType"
-	    "DevelopmentOnly"
-	    "DisplayName"
-	    "ExpandEnumAsExecs"
-	    "HidePin"
-	    "HideSelfPin"
-	    "InternalUseParam"
-	    "Keywords"
-	    "Latent"
-	    "LatentInfo"
-	    "MaterialParameterCollectionFunction"
-	    "NativeBreakFunc"
-	    "NotBlueprintThreadSafe"
-	    "ShortToolTip"
-	    "ToolTip"
-	    "UnsafeDuringActorConstruction"
-	    "WorldContext")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UFUNCTION metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-delegate-specifiers
-  (eval-when-compile
-    (sort '("BlueprintAuthorityOnly"
-	    "BlueprintCallable"
-	    "BlueprintCosmetic"
-	    "BlueprintImplementableEvent"
-	    "BlueprintNativeEvent"
-	    "BlueprintPure"
-	    "CallInEditor"
-	    "Category"
-	    "Client"
-	    "CustomThunk"
-	    "Exec"
-	    "NetMulticast"
-	    "Reliable"
-	    "SealedEvent"
-	    "ServiceRequest"
-	    "ServiceResponse"
-	    "Server"
-	    "Unreliable"
-	    "WithValidation"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UDELEGATE specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-delegate-metadata-specifiers
-  (eval-when-compile
-    (sort '("AdvancedDisplay"
-	    "ArrayParm"
-	    "ArrayTypeDependentParams"
-	    "AutoCreateRefTerm"
-	    "BlueprintAutocast"
-	    "BlueprintInternalUseOnly"
-	    "BlueprintProtected"
-	    "CallableWithoutWorldContext"
-	    "CommutativeAssociativeBinaryOperator"
-	    "CompactNodeTitle"
-	    "CustomStructureParam"
-	    "DefaultToSelf"
-	    "DeprecatedFunction"
-	    "DeprecationMessage"
-	    "DeterminesOutputType"
-	    "DevelopmentOnly"
-	    "DisplayName"
-	    "ExpandEnumAsExecs"
-	    "HidePin"
-	    "HideSelfPin"
-	    "InternalUseParam"
-	    "Keywords"
-	    "Latent"
-	    "LatentInfo"
-	    "MaterialParameterCollectionFunction"
-	    "NativeBreakFunc"
-	    "NotBlueprintThreadSafe"
-	    "ShortToolTip"
-	    "ToolTip"
-	    "UnsafeDuringActorConstruction"
-	    "WorldContext")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UDELEGATE metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-uparam-specifiers
-  (eval-when-compile
-    (sort '("DisplayName"
-	    "ref")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UPARAM specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-interface-specifiers
-  (eval-when-compile
-    (sort '("BlueprintType"
-	    "DependsOn"
-	    "MinimalAPI"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UINTERFACE specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-interface-metadata-specifiers
-  (eval-when-compile
-    (sort '("CannotImplementInterfaceInBlueprint")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UINTERFACE metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-property-specifiers
-  (eval-when-compile
-    (sort '("AdvancedDisplay"
-	    "AssetRegistrySearchable"
-	    "BlueprintAssignable"
-	    "BlueprintAuthorityOnly"
-	    "BlueprintCallable"
-	    "BlueprintGetter"
-	    "BlueprintReadOnly"
-	    "BlueprintReadWrite"
-	    "BlueprintSetter"
-	    "Category"
-	    "Config"
-	    "DuplicateTransient"
-	    "EditAnywhere"
-	    "EditDefaultsOnly"
-	    "EditFixedSize"
-	    "EditInline"
-	    "EditInstanceOnly"
-	    "Export"
-	    "GlobalConfig"
-	    "Instanced"
-	    "Interp"
-	    "Localized"
-	    "Native"
-	    "NoClear"
-	    "NoExport"
-	    "NonPIEDuplicateTransient"
-	    "NonTransactional"
-	    "NotReplicated"
-	    "Replicated"
-	    "ReplicatedUsing"
-	    "RepRetry"
-	    "SaveGame"
-	    "SerializeText"
-	    "SkipSerialization"
-	    "SimpleDisplay"
-	    "TextExportTransient"
-	    "Transient"
-	    "VisibleAnywhere"
-	    "VisibleDefaultsOnly"
-	    "VisibleInstanceOnly"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UPROPERTY specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-property-metadata-specifiers
-  (eval-when-compile
-    (sort '("AllowAbstract"
-	    "AllowedClasses"
-	    "AllowPreserveRatio"
-	    "ArrayClamp"
-	    "AssetBundles"
-	    "BlueprintBaseOnly"
-	    "BlueprintCompilerGeneratedDefaults"
-	    "ClampMin"
-	    "ClampMax"
-	    "ConfigHierarchyEditable"
-	    "ContentDir"
-	    "DisplayAfter"
-	    "DisplayName"
-	    "DisplayPriority"
-	    "DisplayThumbnail"
-	    "EditCondition"
-	    "EditFixedOrder"
-	    "ExactClass"
-	    "ExposeFunctionCategories"
-	    "ExposeOnSpawn"
-	    "FilePathFilter"
-	    "GetByRef"
-	    "HideAlphaChannel"
-	    "HideViewOptions"
-	    "InlineEditConditionToggle"
-	    "LongPackageName"
-	    "MakeEditWidget"
-	    "NoGetter")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ UPROPERTY metadata specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-struct-specifiers
-  (eval-when-compile
-    (sort '("Atomic"
-	    "BlueprintType"
-	    "Immutable"
-	    "NoExport"
-	    "meta")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ USTRUCT specifiers."
-  :type  '(choice (const :tag "Disabled" nil)
-		  (repeat string))
-  :group 'ue)
-
-(defcustom ue-struct-metadata-specifiers
-  (eval-when-compile
-    (sort '("BlueprintSpawnableComponent"
-	    "BlueprintThreadSafe"
-	    "ChildCannotTick"
-	    "ChildCanTick"
-	    "DeprecatedNode"
-	    "DeprecationMessage"
-	    "DisplayName"
-	    "DontUseGenericSpawnObject"
-	    "ExposedAsyncProxy"
-	    "IgnoreCategoryKeywordsInSubclasses"
-	    "IsBlueprintBase"
-	    "KismetHideOverrides"
-	    "ProhibitedInterfaces"
-	    "ShortToolTip"
-	    "ShowWorldContextPin"
-	    "UsesHierarchy"
-	    "ToolTip")
-	  #'ue--c++-string-length>))
-  "List of Unreal C++ USTRUCT metadata specifiers."
   :type  '(choice (const :tag "Disabled" nil)
 		  (repeat string))
   :group 'ue)
@@ -482,10 +97,38 @@
 		  (repeat string))
   :group 'ue)
 
-(defcustom ue-expand-snippets t
-  "Enable Unreal Engine C++ yasnippet snippets."
-  :group 'ue
-  :type  'boolean)
+(defcustom ue-attribute-face 'font-lock-preprocessor-face
+  "Face for displaying Unreal attributes (UCLASS, UFUNCTION and the like)."
+  :type  'symbol
+  :group 'ue)
+
+(defcustom ue-generated-body-macro-face 'font-lock-preprocessor-face
+  "Face for displaying Unreal GENERATED_*_BODY macros."
+  :type  'symbol
+  :group 'ue)
+
+(defvar ue--font-lock-attributes nil)
+(defvar ue--font-lock-generated-body-macro nil)
+
+(defun ue--generate-font-lock-attributes ()
+  (let ((attributes-regexp (regexp-opt ue-attributes 'words)))
+    (setq ue--font-lock-attributes
+	  `((,attributes-regexp (0 ue-attribute-face))))))
+
+(defun ue--generate-font-lock-generated-body-macro ()
+  (let ((generated-body-macro-regexp (regexp-opt ue-generated-body-macro 'words)))
+    (setq ue--font-lock-generated-body-macro
+	  `((,generated-body-macro-regexp (0 ue-generated-body-macro-face))))))
+
+(defun ue-font-lock-add-keywords (&optional mode)
+  "Add Unreal Engine keywords into major MODE or current buffer if nil."
+  (font-lock-add-keywords mode (ue--generate-font-lock-attributes) nil)
+  (font-lock-add-keywords mode (ue--generate-font-lock-generated-body-macro) nil))
+
+(defun ue-font-lock-remove-keywords (&optional mode)
+  "Remove Unreal Engine keywords from major MODE or current buffer if nil."
+  (font-lock-remove-keywords mode ue--font-lock-attributes)
+  (font-lock-remove-keywords mode ue--font-lock-generated-body-macro))
 
 (defconst ue-root-directory ".uemacs"
   "The directory that is used to indentify Unreal Emacs project root.")
@@ -533,17 +176,27 @@
 	     (require 'yasnippet nil t))
     (yas-activate-extra-mode 'ue-mode)))
 
-(defun ue-mode-setup ()
+(defun ue-mode-init ()
   "Configure 'ue-mode'."
+  (when (derived-mode-p 'c++-mode)
+    (ue-font-lock-add-keywords)
+    (font-lock-flush))
   (ue--activate-snippets))
+
+(defun ue-mode-deinit ()
+  "Cleanup changes made by 'ue-mode."
+  (when (derived-mode-p 'c++-mode)
+    (ue-font-lock-remove-keywords)
+    (font-lock-flush)))
 
 ;;;###autoload
 (define-minor-mode ue-mode
   "Minor mode for Unreal Engine projects based on projectile-mode."
   :init-value nil
   :lighter    " ue"
-  (when ue-mode
-    (ue-mode-setup)))
+  (if ue-mode
+      (ue-mode-init)
+    (ue-mode-deinit)))
 
 ;;;###autoload
 (defun ue-on ()
