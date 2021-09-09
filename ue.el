@@ -232,14 +232,15 @@
 	  (intern target-name))))))
 
 (defun ue-update-mode-line ()
-  "Update ue-mode mode-line."
-  (let* ((target    (ue--meta-project-target-read))
-	 (target    (when (and target (ue--meta-project-target-valid-p target)) target))
-	 (mode-line (format "%s[%s]"
-			    ue-mode-line-prefix
-			    (or target
-				"?"))))
-    (setq ue--mode-line mode-line))
+  "Update ue-mode mode-line for all project buffers."
+  (let* ((target          (ue--meta-project-target-read))
+	 (target          (when (and target (ue--meta-project-target-valid-p target)) target))
+	 (project         (projectile-acquire-root))
+         (project-name    (projectile-project-name project))
+         (project-buffers (projectile-project-buffers project))
+	 (mode-line       (format "%s[%s]" ue-mode-line-prefix (or target "?"))))
+    (dolist (buf project-buffers)
+      (setf (buffer-local-value 'ue--mode-line buf) mode-line)))
   (force-mode-line-update))
 
 (defun ue--meta-project-target-write (target)
