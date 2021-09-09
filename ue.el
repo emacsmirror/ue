@@ -37,24 +37,36 @@
 ;;; Code:
 
 (require 'projectile)
+(require 'json)
 
 ;; TODO: *A*ctors
 ;;       *I*nterfaces
 ;;       *U*Objects
 ;;       *F*Classes
-;; TODO: Set current target and save it? Then use that for a compile command.
-;; TODO: Recommend to switch from projectile alien mode.
+;; TODO: Recommend to switch away from projectile alien mode.
 ;; TODO: Recommend installing ag Emacs package.
-;; TODO: Run the editor.
-;; https://docs.unrealengine.com/4.26/en-US/ProductionPipelines/CommandLineArguments/
-;; TODO: Build configuration
-;; https://docs.unrealengine.com/4.26/en-US/ProductionPipelines/DevelopmentSetup/BuildConfigurations/
 ;; TODO: Class wizards
+;; TODO: When running or building a project and there is no default target set, i.e. .uemacs/default-target file does not
+;;       exist or is empty, ask a user to choose and then save and cache it.
+;; TODO: Debugging (lsp?)
+;; TODO: Show the Run/Debug configuration in the status bar? ue[ProjectName|DebugGame|Mac]
+;;       - Solution configuration: "Development", "Development Editor", etc.
+;;       - Platform: "Mac", etc.
+;;       Editor configurations run the editor with the name of the project. The solution configuration affects the name
+;;       of the Engine executable (UE4Editor-Mac-DebugGame, etc).
+;;       Game configurations run the binary from the Binary project directory.
+;; TODO: .NET projects?
+;; TODO: Project.Target.cs files
+;; TODO: Config files (*.ini)
 
 ;; Functions used to sort Unreal C++ keywords by length which is used in font locking
 (eval-and-compile
   (defun ue--c++-string-length< (a b) (< (length a) (length b)))
   (defun ue--c++-string-length> (a b) (not (ue--c++-string-length< a b))))
+
+(defun alist-keys (alist)
+  "Return keys of the given ALIST."
+  (mapcar 'car alist))
 
 (defgroup ue nil
   "A minor mode for Unreal Engine projects."
@@ -131,8 +143,14 @@
   (font-lock-remove-keywords mode ue--font-lock-attributes)
   (font-lock-remove-keywords mode ue--font-lock-generated-body-macro))
 
-(defconst ue-root-directory ".uemacs"
-  "The directory that is used to indentify Unreal Emacs project root.")
+(defconst ue-meta-dir ".uemacs"
+  "The directory name that is used to indentify Unreal Emacs project root.")
+
+(defconst ue-meta-project-file "project.json"
+  "The name of the file that contains Unreal Emacs project metadata.")
+
+(defconst ue-meta-project-target-file "target"
+  "The name of the file that contains default build/run target name.")
 
 (defvar ue-cache-data (make-hash-table :test 'equal)
   "A hash table used for caching information about the current project.")
@@ -149,9 +167,98 @@
 	(ignore-errors
 	  (let ((root (projectile-locate-dominating-file
 		       default-directory
-		       ue-root-directory)))
+		       ue-meta-dir)))
 	    (puthash cache-key root ue-cache-data)
 	    root)))))
+
+(defun ue-meta-dir ()
+  "Return Unreal Emacs directorty that contains project metadata if this is Unreal Emacs project, nil otherwise."
+  (when-let ((root (ue-project-root)))
+    (expand-file-name ue-meta-dir root)))
+
+(defun ue--meta-expand-file-name (file-name)
+  "Return absolute path to FILE-NAME relative to the Unreal Emacs project metadata directory."
+  (when-let ((meta-dir (ue-meta-dir)))
+    (expand-file-name file-name meta-dir)))
+
+(defun ue-meta-project-file ()
+  "Return absolute path to the project metadata file."
+  (ue--meta-expand-file-name ue-meta-project-file))
+
+(defun ue-meta-project-target-file ()
+  "Return absolute path to the project's current run/build target file."
+  (ue--meta-expand-file-name ue-meta-project-target-file))
+
+(defun ue-meta-project ()
+  "Return project metadata alist."
+  (let* ((cache-key   (ue-cache-key "project-meta"))
+	 (cache-value (gethash cache-key ue-cache-data)))
+    (or cache-value
+	(ignore-errors
+	  (when-let* ((meta-file (ue-meta-project-file))
+		      (json      (json-read-file meta-file)))
+	    (puthash cache-key json ue-cache-data)
+	    json)))))
+
+(defun ue-meta-project-build-tasks ()
+  "Return alist of build tasks for the current project."
+  (when-let ((meta (ue-meta-project)))
+    (let-alist meta
+      .project.tasks.build)))
+
+(defun ue-meta-project-targets ()
+  "Return a list of the run/build targets for the current project."
+  (when-let ((build-tasks (ue-meta-project-build-tasks)))
+    (alist-keys build-tasks)))
+
+(defun ue--meta-project-target-valid-p (target)
+  "Check if the given project run/build TARGET is valid."
+  (let ((project-targets (ue-meta-project-targets)))
+    (and (symbolp target)
+	 (member target project-targets))))
+
+(defun ue--meta-project-target-read ()
+  "Return saved run/build target name as symbol."
+  (when-let ((target-file (ue-meta-project-target-file)))
+    (when (file-exists-p target-file)
+      (with-temp-buffer
+	(insert-file-contents target-file)
+	(when-let ((target-name (buffer-string)))
+	  (intern target-name))))))
+
+(defun ue--meta-project-target-write (target)
+  "Save the given run/build TARGET name to the metadata file."
+  (write-region (symbol-name target) nil (ue-meta-project-target-file))
+  target)
+
+(defun ue-meta-select-project-target ()
+  "Prompt a user to pick a default run/build target from the list."
+  (interactive)
+  (when-let ((targets     (mapcar #'symbol-name (ue-meta-project-targets)))
+	     (target-name (completing-read
+			   "Run/Build Target: "
+			   targets
+			   nil
+			   t
+			   nil
+			   nil
+			   targets)))
+    (ue--meta-project-target-write (intern target-name))))
+
+(defun ue-meta-project-target ()
+  "Return current project target if set and valid or ask user to set it."
+  (let ((saved-target (ue--meta-project-target-read)))
+    (if (and saved-target
+	     (ue--meta-project-target-valid-p saved-target))
+	saved-target
+      (ue-meta-select-project-target))))
+
+(defun ue-project-build-command (&optional target)
+  "Return build command for the given run/build TARGET symbol."
+  (when-let ((build-tasks (ue-meta-project-build-tasks)))
+    (alist-get (or target
+		   (ue-meta-project-target))
+	       build-tasks)))
 
 ;; Copied from yasnippet-snippets
 (defconst ue-snippets-dir
@@ -216,8 +323,9 @@
   (ue-mode -1))
 
 ;; Teach projectile how to recognize ue.el projects
-(projectile-register-project-type 'ue           (list ue-root-directory)
-				  :project-file ue-root-directory)
+(projectile-register-project-type 'ue           (list ue-meta-dir)
+				  :project-file ue-meta-dir
+				  :compile      #'ue-project-build-command)
 
 ;; Add Unreal Engine C++ snippets
 (with-eval-after-load "yasnippet"
