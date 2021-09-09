@@ -2,7 +2,7 @@
 ## Synopsis
 
 **ue** is a minor mode for working with [Unreal Engine](https://www.unrealengine.com/) projects in GNU Emacs.
-It complements [Unreal Emacs plug-in](https://gitlab.com/manenko/emacs-sourcecode-access).
+It complements [Unreal Emacs plug-in](https://gitlab.com/unrealemacs/emacs-sourcecode-access).
 
 Internally it is based on [Projectile](https://github.com/bbatsov/projectile). It means that you can use Projectile's commands for greping (or acking) files, switching between alternating files, etc.
 
