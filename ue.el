@@ -78,6 +78,9 @@
   :group 'ue
   :type  'boolean)
 
+(defcustom ue-mode-line-prefix " ue"
+  "Mode line lighter prefix for ue-mode.")
+
 (defcustom ue-attributes
   (eval-when-compile
     (sort '("UCLASS"
@@ -151,6 +154,8 @@
 
 (defconst ue-meta-project-target-file "target"
   "The name of the file that contains default build/run target name.")
+
+(defvar-local ue--mode-line ue-mode-line-prefix)
 
 (defvar ue-cache-data (make-hash-table :test 'equal)
   "A hash table used for caching information about the current project.")
@@ -226,9 +231,21 @@
 	(when-let ((target-name (buffer-string)))
 	  (intern target-name))))))
 
+(defun ue-update-mode-line ()
+  "Update ue-mode mode-line."
+  (let* ((target    (ue--meta-project-target-read))
+	 (target    (when (and target (ue--meta-project-target-valid-p target)) target))
+	 (mode-line (format "%s[%s]"
+			    ue-mode-line-prefix
+			    (or target
+				"?"))))
+    (setq ue--mode-line mode-line))
+  (force-mode-line-update))
+
 (defun ue--meta-project-target-write (target)
   "Save the given run/build TARGET name to the metadata file."
   (write-region (symbol-name target) nil (ue-meta-project-target-file))
+  (ue-update-mode-line)
   target)
 
 (defun ue-meta-select-project-target ()
@@ -289,7 +306,8 @@
   (when (derived-mode-p 'c++-mode)
     (ue-font-lock-add-keywords)
     (font-lock-flush))
-  (ue--activate-snippets))
+  (ue--activate-snippets)
+  (ue-update-mode-line))
 
 (defun ue-mode-deinit ()
   "Cleanup change made by 'ue-mode."
@@ -301,7 +319,7 @@
 (define-minor-mode ue-mode
   "Minor mode for Unreal Engine projects based on projectile-mode."
   :init-value nil
-  :lighter    " ue"
+  :lighter    ue--mode-line
   (if ue-mode
       (ue-mode-init)
     (ue-mode-deinit)))
