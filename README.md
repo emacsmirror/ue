@@ -9,7 +9,6 @@ generates.
 Internally it is based on [Projectile](https://github.com/bbatsov/projectile).
 It means that you can use Projectile's commands for greping (or acking) files, switching between alternating files, etc.
 
-Compilation and running is not available yet but will be added in the future. 
 This is a work-in-progress project.
 
 ## Features
