@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: Subscribe to OnComponentBeginOverlap
+# name: Subscribe to OnComponentBeginOverlap event
 # key: usoncomponentbeginoverlap
 # condition: (ue--yas-can-expand-p)
 # --
