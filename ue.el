@@ -248,7 +248,7 @@
   (ue-update-mode-line)
   target)
 
-(defun ue-meta-select-project-target ()
+(defun ue-select-project-target ()
   "Prompt a user to pick a default run/build target from the list."
   (interactive)
   (when-let ((targets     (mapcar #'symbol-name (ue-meta-project-targets)))
@@ -268,7 +268,7 @@
     (if (and saved-target
 	     (ue--meta-project-target-valid-p saved-target))
 	saved-target
-      (ue-meta-select-project-target))))
+      (ue-select-project-target))))
 
 (defun ue-project-build-command (&optional target)
   "Return build command for the given run/build TARGET symbol."

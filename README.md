@@ -1,4 +1,5 @@
-# ue.el
+[[_TOC_]]
+
 ## Synopsis
 
 **ue.el** provides a minor mode for working with [Unreal Engine](https://www.unrealengine.com/) projects in GNU Emacs.
@@ -165,4 +166,7 @@ caching and indexing files.
 
 ## Caveats
 
-Project still has to be tested on GNU/Linux and Windows. 
+Project still has to be tested on GNU/Linux and Windows.
+
+There is no default key binding for switching the run configuration yet :) 
+You can do that manually via `M-x ue-select-project-target`.
