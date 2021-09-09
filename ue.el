@@ -46,12 +46,8 @@
 ;; TODO: Recommend to switch away from projectile alien mode.
 ;; TODO: Recommend installing ag Emacs package.
 ;; TODO: Class wizards
-;; TODO: When running or building a project and there is no default target set, i.e. .uemacs/default-target file does not
-;;       exist or is empty, ask a user to choose and then save and cache it.
 ;; TODO: Debugging (lsp?)
-;; TODO: Show the Run/Debug configuration in the status bar? ue[ProjectName|DebugGame|Mac]
-;;       - Solution configuration: "Development", "Development Editor", etc.
-;;       - Platform: "Mac", etc.
+;; TODO: Add run commands
 ;;       Editor configurations run the editor with the name of the project. The solution configuration affects the name
 ;;       of the Engine executable (UE4Editor-Mac-DebugGame, etc).
 ;;       Game configurations run the binary from the Binary project directory.
@@ -80,6 +76,61 @@
 
 (defcustom ue-mode-line-prefix " ue"
   "Mode line lighter prefix for ue-mode.")
+
+(defcustom ue-globally-ignored-files
+  '("compile_commands.json")
+  "A list of files globally ignored by projectile.
+Note that files aren't filtered if `projectile-indexing-method' is set to 'alien'."
+  :group 'ue
+  :type '(repeat string))
+
+(defcustom ue-globally-ignored-directories
+    '("*Binaries"
+      "*Content"
+      "*DerivedDataCache"
+      "*Intermediate"
+      "*Saved"
+      "*Script"
+      "*.uemacs")
+  "A list of directories globally ignored by projectile.
+Regular expressions can be used.
+
+Strings that don't start with * are only ignored at the top level
+of the project. Strings that start with * are ignored everywhere
+in the project, as if there was no *.  So note that * when used as
+a prefix is not a wildcard; it is an indicator that the directory
+should be ignored at all levels, not just root.
+
+Examples: \"tmp\" ignores only ./tmp at the top level of the
+project, but not ./src/tmp. \"*tmp\" will ignore both ./tmp and
+./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
+
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
+  :group 'ue
+  :type '(repeat string))
+
+(defcustom ue-globally-ignored-file-suffixes
+  '(".uplugin"
+    ".uproject"
+    ".tiff"
+    ".png"
+    ".bmp"
+    ".jpg"
+    ".wav"
+    ".mp3"
+    ".fbx"
+    ".3ds"
+    ".psd"
+    ".xcf"
+    ".icns"
+    ".uasset"
+    ".umap")
+  "A list of file suffixes globally ignored by projectile.
+Note that files aren't filtered if `projectile-indexing-method'
+is set to 'alien'."
+  :group 'ue
+  :type '(repeat string))
 
 (defcustom ue-attributes
   (eval-when-compile
@@ -302,12 +353,24 @@
 	     (require 'yasnippet nil t))
     (yas-activate-extra-mode 'ue-mode)))
 
+(defun ue--setup-ignore-lists ()
+  "Setup Projectile to ignore Unreal Engine specific directories and files."
+  (setq projectile-globally-ignored-directories
+	(append projectile-globally-ignored-directories ue-globally-ignored-directories)
+
+	projectile-globally-ignored-files
+	(append projectile-globally-ignored-files ue-globally-ignored-files)
+
+	projectile-globally-ignored-file-suffixes
+	(append projectile-globally-ignored-file-suffixes ue-globally-ignored-file-suffixes)))
+
 (defun ue-mode-init ()
   "Configure 'ue-mode'."
   (when (derived-mode-p 'c++-mode)
     (ue-font-lock-add-keywords)
     (font-lock-flush))
   (ue--activate-snippets)
+  (ue--setup-ignore-lists)
   (ue-update-mode-line))
 
 (defun ue-mode-deinit ()
