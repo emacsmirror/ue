@@ -311,7 +311,10 @@ in other buffers."
 			 nil
 			 nil
 			 targets)))
-    (ue--project-current-target-id-write (intern target-id))))
+    (ue--project-current-target-id-write (intern target-id))
+    ;; Need to clear projectile command caches otherwise it will use the old commands.
+    (clrhash projectile-compilation-cmd-map)
+    (clrhash projectile-run-cmd-map)))
 
 (defun ue-current-project-target ()
   "Return current project target if set and valid or ask user to set it."
