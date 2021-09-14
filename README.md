@@ -21,7 +21,6 @@ Please, refer to [Projectile usage documentation](https://docs.projectile.mx/pro
 The following Projectile features are not supported yet:
 
 - Test-related commands
-- Running Project/UnrealEditor executables (coming soon!)
 - Debugging (will be added at some point)
 
 #### Building the Project
@@ -32,6 +31,19 @@ The `ue.el` uses the same key bindings to build a project as Projectile `s-p c`.
 If you haven't set project run configuration yet, the `ue.el` will ask you to choose one next time you build the project.
 It will not ask for it again if it is set.
 
+
+#### Running the Project
+
+The same as for building the project.
+Use Projectile's `s-p u` to run project using the current build/run configuration.
+
+#### Switching Build/Run Configuration
+
+There are a few options:
+
+1. `M-x ue-select-project-target`
+2. Click on the mode-line `ue[TargetName-Platform-Configuration]` and use 'Switch target' menu item.
+3. Use `C-c u t` which is disabled by default. See [Interactive Commands](#interactive-commands) on how to enable it.
 
 #### Mode Line
 
@@ -163,9 +175,27 @@ That will turn on the local `ue-mode` for the buffers which belong to an Unreal 
 Probably you should read Projectile's [README](https://github.com/bbatsov/projectile) on setting up the completion system,
 caching and indexing files.
 
-## Caveats
+### Interactive Commands
 
-Project still has to be tested on GNU/Linux and Windows.
+`ue.el` does not have a default key prefix for its commands, but all the examples in the manual assume you have opted for `C-c u`.
+We also assume you have opted for `s-p` (super-p) for Projectile commands.
 
-There is no default key binding for switching the run configuration yet :) 
-You can do that manually via `M-x ue-select-project-target`.
+To configure the key prefix, add the following line to your `init.el` before you turn on `ue-global-mode`:
+
+```
+(define-key ue-mode-map (kbd "C-c u") 'ue-command-map)
+```
+
+The following table lists `ue.el` commands as well as some of Projectile commands for your convenience.
+
+| Keybinding | Description                                                                                                                                              |
+| ---        | ---                                                                                                                                                      |
+| `s-p f`    | Display a list of all files in the project. With a prefix argument it will clear the cache first.                                                        |
+| `s-p d`    | Display a list of all directories in the project. With a prefix argument it will clear the cache first.                                                  |
+| `s-p s g`  | Run grep on the files in the project.                                                                                                                    |
+| `s-p a`    | Switch between files with the same name but different extensions. For example, this is how you switch between `*.h` and `*.cpp` files of the same class. |
+| `s-p c`    | Builds the project for the current run configuration. If there is none selected, asks a user to choose it.                                               |
+| `s-p u`    | Runs the project using current run configuration. If there is none selected, asks a user to choose it.                                                   |
+| `C-c u t`  | Asks a user to select a run configuration from the list of available for the project.                                                                    |
+
+Please, check [Projectile documentation](https://docs.projectile.mx/projectile/usage.html#interactive-commands) for more keybindings.
