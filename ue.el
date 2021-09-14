@@ -60,7 +60,7 @@
   (defun ue--c++-string-length< (a b) (< (length a) (length b)))
   (defun ue--c++-string-length> (a b) (not (ue--c++-string-length< a b))))
 
-(defun alist-keys (alist)
+(defun ue--alist-keys (alist)
   "Return keys of the given ALIST."
   (mapcar 'car alist))
 
@@ -197,137 +197,151 @@ is set to 'alien'."
   (font-lock-remove-keywords mode ue--font-lock-attributes)
   (font-lock-remove-keywords mode ue--font-lock-generated-body-macro))
 
-(defconst ue-meta-dir ".uemacs"
+(defconst ue--uemacs-dir ".uemacs"
   "The directory name that is used to indentify Unreal Emacs project root.")
 
-(defconst ue-meta-project-file "project.json"
+(defconst ue--project-file "project.json"
   "The name of the file that contains Unreal Emacs project metadata.")
 
-(defconst ue-meta-project-target-file "target"
-  "The name of the file that contains default build/run target name.")
+(defconst ue--project-target-file "target"
+  "The name of the file that contains current build/run target name.")
 
 (defvar-local ue--mode-line ue-mode-line-prefix)
 
-(defvar ue-cache-data (make-hash-table :test 'equal)
+(defvar ue--cache-data (make-hash-table :test 'equal)
   "A hash table used for caching information about the current project.")
 
-(defun ue-cache-key (key)
+(defun ue--cache-key (key)
   "Generate a cache key based on the current directory and the given KEY."
   (format "%s-%s" default-directory key))
 
 (defun ue-project-root ()
   "Return Unreal Emacs root directory if this file is part of the Unreal Emacs project else nil."
-  (let* ((cache-key   (ue-cache-key "root"))
-	 (cache-value (gethash cache-key ue-cache-data)))
+  (let* ((cache-key   (ue--cache-key "root"))
+	 (cache-value (gethash cache-key ue--cache-data)))
     (or cache-value
 	(ignore-errors
 	  (let ((root (projectile-locate-dominating-file
 		       default-directory
-		       ue-meta-dir)))
-	    (puthash cache-key root ue-cache-data)
+		       ue--uemacs-dir)))
+	    (puthash cache-key root ue--cache-data)
 	    root)))))
 
-(defun ue-meta-dir ()
-  "Return Unreal Emacs directorty that contains project metadata if this is Unreal Emacs project, nil otherwise."
+(defun ue--uemacs-dir ()
+  "Return absolute path '.uemacs' directory if this is Unreal Emacs project, nil otherwise."
   (when-let ((root (ue-project-root)))
-    (expand-file-name ue-meta-dir root)))
+    (expand-file-name ue--uemacs-dir root)))
 
-(defun ue--meta-expand-file-name (file-name)
-  "Return absolute path to FILE-NAME relative to the Unreal Emacs project metadata directory."
-  (when-let ((meta-dir (ue-meta-dir)))
-    (expand-file-name file-name meta-dir)))
+(defun ue--uemacs-expand-file-name (file-name)
+  "Return absolute path to FILE-NAME relative to '.uemacs' directory."
+  (when-let ((uemacs-dir (ue--uemacs-dir)))
+    (expand-file-name file-name uemacs-dir)))
 
-(defun ue-meta-project-file ()
-  "Return absolute path to the project metadata file."
-  (ue--meta-expand-file-name ue-meta-project-file))
+(defun ue--uemacs-project-file ()
+  "Return absolute path to the 'project.json' file."
+  (ue--uemacs-expand-file-name ue--project-file))
 
-(defun ue-meta-project-target-file ()
+(defun ue--uemacs-project-target-file ()
   "Return absolute path to the project's current run/build target file."
-  (ue--meta-expand-file-name ue-meta-project-target-file))
+  (ue--uemacs-expand-file-name ue--project-target-file))
 
-(defun ue-meta-project ()
+(defun ue-project-metadata ()
   "Return project metadata alist."
-  (let* ((cache-key   (ue-cache-key "project-meta"))
-	 (cache-value (gethash cache-key ue-cache-data)))
+  (let* ((cache-key   (ue--cache-key "project-meta"))
+	 (cache-value (gethash cache-key ue--cache-data)))
     (or cache-value
 	(ignore-errors
-	  (when-let* ((meta-file (ue-meta-project-file))
-		      (json      (json-read-file meta-file)))
-	    (puthash cache-key json ue-cache-data)
+	  (when-let* ((file (ue--uemacs-project-file))
+		      (json (json-read-file file)))
+	    (puthash cache-key json ue--cache-data)
 	    json)))))
 
-(defun ue-meta-project-build-tasks ()
-  "Return alist of build tasks for the current project."
-  (when-let ((meta (ue-meta-project)))
-    (let-alist meta
-      .project.tasks.build)))
-
-(defun ue-meta-project-targets ()
+(defun ue-project-targets ()
   "Return a list of the run/build targets for the current project."
-  (when-let ((build-tasks (ue-meta-project-build-tasks)))
-    (alist-keys build-tasks)))
+  (let-alist (ue-project-metadata) .Project.Targets))
 
-(defun ue--meta-project-target-valid-p (target)
-  "Check if the given project run/build TARGET is valid."
-  (let ((project-targets (ue-meta-project-targets)))
-    (and (symbolp target)
-	 (member target project-targets))))
+(defun ue-project-target-ids ()
+  "Return a list of the run/build target identifiers for the current project.
+A target id is $TargetName$-$Platform$-$Configuration$."
+  (ue--alist-keys (ue-project-targets)))
 
-(defun ue--meta-project-target-read ()
-  "Return saved run/build target name as symbol."
-  (when-let ((target-file (ue-meta-project-target-file)))
+(defun ue-project-target-id-valid-p (target-id)
+  "Check if the given project run/build TARGET-ID is valid."
+  (and (symbolp target-id)
+       (member target-id (ue-project-target-ids))))
+
+(defun ue--project-current-target-id-read ()
+  "Return saved run/build target id as a symbol.
+We cannot cache it because a user can switch to another target
+in other buffers."
+  (when-let ((target-file (ue--uemacs-project-target-file)))
     (when (file-exists-p target-file)
       (with-temp-buffer
 	(insert-file-contents target-file)
-	(when-let ((target-name (buffer-string)))
-	  (intern target-name))))))
+	(when-let ((target-id (buffer-string)))
+	  (intern target-id))))))
 
-(defun ue-update-mode-line ()
+(defun ue--update-mode-line ()
   "Update ue-mode mode-line for all project buffers."
-  (let* ((target          (ue--meta-project-target-read))
-	 (target          (when (and target (ue--meta-project-target-valid-p target)) target))
+  (let* ((id              (ue--project-current-target-id-read))
+	 (id              (when (and id (ue-project-target-id-valid-p id)) id))
 	 (project         (projectile-acquire-root))
          (project-name    (projectile-project-name project))
          (project-buffers (projectile-project-buffers project))
-	 (mode-line       (format "%s[%s]" ue-mode-line-prefix (or target "?"))))
+	 (mode-line       (format "%s[%s]" ue-mode-line-prefix (or id "?"))))
     (dolist (buf project-buffers)
       (setf (buffer-local-value 'ue--mode-line buf) mode-line)))
   (force-mode-line-update))
 
-(defun ue--meta-project-target-write (target)
-  "Save the given run/build TARGET name to the metadata file."
-  (write-region (symbol-name target) nil (ue-meta-project-target-file))
-  (ue-update-mode-line)
-  target)
+(defun ue--project-current-target-id-write (id)
+  "Save the given run/build target ID to the current target file."
+  (write-region (symbol-name id) nil (ue--uemacs-project-target-file))
+  (ue--update-mode-line)
+  id)
 
 (defun ue-select-project-target ()
   "Prompt a user to pick a default run/build target from the list."
   (interactive)
-  (when-let ((targets     (mapcar #'symbol-name (ue-meta-project-targets)))
-	     (target-name (completing-read
-			   "Run/Build Target: "
-			   targets
-			   nil
-			   t
-			   nil
-			   nil
-			   targets)))
-    (ue--meta-project-target-write (intern target-name))))
+  (when-let ((targets   (mapcar #'symbol-name (ue-project-target-ids)))
+	     (target-id (completing-read
+			 "Run/Build Target: "
+			 targets
+			 nil
+			 t
+			 nil
+			 nil
+			 targets)))
+    (ue--project-current-target-id-write (intern target-id))))
 
-(defun ue-meta-project-target ()
+(defun ue-current-project-target ()
   "Return current project target if set and valid or ask user to set it."
-  (let ((saved-target (ue--meta-project-target-read)))
+  (let ((saved-target (ue--project-current-target-id-read)))
     (if (and saved-target
-	     (ue--meta-project-target-valid-p saved-target))
+	     (ue-project-target-id-valid-p saved-target))
 	saved-target
       (ue-select-project-target))))
 
+(defun ue-project-target-get (id)
+  "Return alist for the given run/build target ID."
+  (alist-get id (ue-project-targets)))
+
+(defun ue-project-target-build-command (id)
+  "Return build command for the given run/build target ID."
+  (let-alist (ue-project-target-get id) .Tasks.Build))
+
+(defun ue-project-target-run-command (id)
+  "Return run command for the given run/build target ID."
+  (let-alist (ue-project-target-get id) .Tasks.Run))
+
 (defun ue-project-build-command (&optional target)
-  "Return build command for the given run/build TARGET symbol."
-  (when-let ((build-tasks (ue-meta-project-build-tasks)))
-    (alist-get (or target
-		   (ue-meta-project-target))
-	       build-tasks)))
+  "Return build command for the given run/build TARGET id."
+  (ue-project-target-build-command (or target
+				       (ue-current-project-target))))
+
+(defun ue-project-run-command (&optional target)
+  "Return build command for the given run/build TARGET id."
+  (ue-project-target-run-command (or target
+				     (ue-current-project-target))))
 
 ;; Copied from yasnippet-snippets
 (defconst ue-snippets-dir
@@ -364,50 +378,51 @@ is set to 'alien'."
 	projectile-globally-ignored-file-suffixes
 	(append projectile-globally-ignored-file-suffixes ue-globally-ignored-file-suffixes)))
 
-(defun ue-mode-init ()
-  "Configure 'ue-mode'."
-  (when (derived-mode-p 'c++-mode)
-    (ue-font-lock-add-keywords)
-    (font-lock-flush))
-  (ue--activate-snippets)
-  (ue--setup-ignore-lists)
-  (ue-update-mode-line))
+(defun ue--register-keywords ()
+  "Enable colouring of Unreal Engine keywords."
+  (ue-font-lock-add-keywords 'c++-mode)
+  (font-lock-flush)
+  (setf ue--keywords-registered t))
 
-(defun ue-mode-deinit ()
-  "Cleanup change made by 'ue-mode."
-  (when (derived-mode-p 'c++-mode)
-    (ue-font-lock-remove-keywords)
-    (font-lock-flush)))
+(defun ue--unregister-keywords ()
+  "Disable colouring of Unreal Engine keywords."
+  (ue-font-lock-remove-keywords 'c++-mode)
+  (font-lock-flush))
 
-;;;###autoload
+(defun ue--ignore-buffer-p ()
+  "Return t if `ue-mode' should not be enabled for the current buffer."
+  (string-match-p
+   "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
+   (buffer-name)))
+
 (define-minor-mode ue-mode
   "Minor mode for Unreal Engine projects based on projectile-mode."
   :init-value nil
   :lighter    ue--mode-line
-  (if ue-mode
-      (ue-mode-init)
-    (ue-mode-deinit)))
+  (when ue-mode
+    (ue--register-keywords)
+    (ue--activate-snippets)
+    (ue--setup-ignore-lists)
+    (ue--update-mode-line)))
 
-;;;###autoload
 (defun ue-on ()
   "Enable 'ue-mode' minor mode if this is an Unreal Engine based project."
-  (when (and (projectile-project-p)
+  (when (and (not (ue--ignore-buffer-p))
+	     (projectile-project-p)
 	     (ue-project-root))
     (ue-mode +1)))
 
-;;;###autoload
-(define-globalized-minor-mode ue-global-mode
-  ue-mode
-  ue-on)
+(define-globalized-minor-mode ue-global-mode ue-mode ue-on)
 
 (defun ue-off ()
   "Disable 'ue-mode' minor mode."
   (ue-mode -1))
 
 ;; Teach projectile how to recognize ue.el projects
-(projectile-register-project-type 'ue           (list ue-meta-dir)
-				  :project-file ue-meta-dir
-				  :compile      #'ue-project-build-command)
+(projectile-register-project-type 'ue           (list ue--uemacs-dir)
+				  :project-file ue--uemacs-dir
+				  :compile      #'ue-project-build-command
+				  :run          #'ue-project-run-command)
 
 ;; Add Unreal Engine C++ snippets
 (with-eval-after-load "yasnippet"
