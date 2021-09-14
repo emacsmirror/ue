@@ -75,7 +75,7 @@
   :type  'boolean)
 
 (defcustom ue-mode-line-prefix " ue"
-  "Mode line lighter prefix for ue-mode.")
+  "Mode line lighter prefix for `ue-mode'.")
 
 (defcustom ue-globally-ignored-files
   '("compile_commands.json")
@@ -157,19 +157,29 @@ is set to 'alien'."
 	    "GENERATED_UINTERFACE_BODY"
 	    "GENERATED_USTRUCT_BODY")
 	  #'ue--c++-string-length>))
-  "List of Unreal C++ GENERATED_*_BODY macros."
+  "List of Unreal C++ `GENERATED_*_BODY' macros."
   :type  '(choice (const :tag "Disabled" nil)
 		  (repeat string))
   :group 'ue)
 
 (defcustom ue-attribute-face 'font-lock-preprocessor-face
-  "Face for displaying Unreal attributes (UCLASS, UFUNCTION and the like)."
+  "Face for displaying Unreal attributes (`UCLASS', `UFUNCTION' and the like)."
   :type  'symbol
   :group 'ue)
 
 (defcustom ue-generated-body-macro-face 'font-lock-preprocessor-face
-  "Face for displaying Unreal GENERATED_*_BODY macros."
+  "Face for displaying Unreal `GENERATED_*_BODY' macros."
   :type  'symbol
+  :group 'ue)
+
+(defcustom ue-keymap-prefix nil
+  "Keymap prefix for `ue-mode'."
+  :type  'string
+  :group 'ue)
+
+(defcustom ue-discover-bind "c-u"
+  "The :bind option that will be passed `discover-add-context-menu' if available."
+  :type  'string
   :group 'ue)
 
 (defvar ue--font-lock-attributes nil)
@@ -398,10 +408,30 @@ in other buffers."
    "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
    (buffer-name)))
 
+(defvar ue-command-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "t") #'ue-select-project-target)
+    map)
+  "Keymap after `ue-keymap-prefix'.")
+(fset 'ue-command-map ue-command-map)
+
+(defvar ue-mode-map
+  (let ((map (make-sparse-keymap)))
+    (when ue-keymap-prefix
+      (define-key map ue-keymap-prefix 'ue-command-map))
+    (easy-menu-define ue-mode-menu map
+      "Menu for ue-mode"
+      '("UE" ["Switch target" ue-select-project-target]))
+    map)
+  "Keymap for `ue-mode'.")
+
 (define-minor-mode ue-mode
-  "Minor mode for Unreal Engine projects based on projectile-mode."
+  "Minor mode for Unreal Engine projects based on projectile-mode.
+
+\\{ue-mode-map}"
   :init-value nil
   :lighter    ue--mode-line
+  :keymap     ue-mode-map
   (when ue-mode
     (ue--register-keywords)
     (ue--activate-snippets)
@@ -421,7 +451,7 @@ in other buffers."
   "Disable 'ue-mode' minor mode."
   (ue-mode -1))
 
-;; Teach projectile how to recognize ue.el projects
+;; Teach projectile how to recognize `ue.el' projects
 (projectile-register-project-type 'ue           (list ue--uemacs-dir)
 				  :project-file ue--uemacs-dir
 				  :compile      #'ue-project-build-command
