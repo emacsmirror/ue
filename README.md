@@ -45,6 +45,8 @@ There are a few options:
 2. Click on the mode-line `ue[TargetName-Platform-Configuration]` and use 'Switch target' menu item.
 3. Use `C-c u t` which is disabled by default. See [Interactive Commands](#interactive-commands) on how to enable it.
 
+Oh and make sure you use MyProject**Editor** configurations.
+
 #### Mode Line
 
 You can see the current run configuration in the mode-line:
