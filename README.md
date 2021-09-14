@@ -184,7 +184,7 @@ We also assume you have opted for `s-p` (super-p) for Projectile commands.
 
 To configure the key prefix, add the following line to your `init.el` before you turn on `ue-global-mode`:
 
-```
+```elisp
 (define-key ue-mode-map (kbd "C-c u") 'ue-command-map)
 ```
 
