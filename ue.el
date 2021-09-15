@@ -646,10 +646,10 @@ If the current buffer does not belong to a project, call `next-buffer'."
 	"--"
 	["Switch build target"            ue-switch-build-target]
 	["Invalidate cache"               ue-invalidate-cache]
-        ;;["Refresh project"]               ue-refresh-project ;; (regenerate project files)
+	;;["Refresh project"]               ue-refresh-project ;; (regenerate project files)
 	"--"
-        ["Search in project (grep)"       ue-grep]
-        ["Search in project (ag)"         ue-ag]
+        ["Search in project using grep"   ue-grep]
+        ["Search in project using ag"     ue-ag]
         ["Replace in project"             ue-replace]
         ["Multi-occur in project"         ue-multi-occur]
 	"--"

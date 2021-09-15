@@ -180,7 +180,10 @@ ue[?]
 ....
 
 You  can click  on the  mode-line  to invoke  a menu  of the  commands
-available.
+available:
+
+image::images/ue-context-menu.png["ue.el context menu",338,463]
+
 
 == Installation
 
