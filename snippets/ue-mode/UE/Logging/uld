@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: DECLARE_LOG_CATEGORY_EXTERN
-# key: ulh
+# key: uld
 # condition: (ue--yas-can-expand-p)
 # --
 DECLARE_LOG_CATEGORY_EXTERN(Log${1:Category}, All, All);

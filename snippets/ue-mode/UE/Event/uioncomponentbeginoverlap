@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: Define OnComponentBeginOverlap event handler
-# key: uconcomponentbeginoverlap
+# name: Implement OnComponentBeginOverlap event handler
+# key: uioncomponentbeginoverlap
 # condition: (ue--yas-can-expand-p)
 # --
 void ${2:A}`(file-name-base)`::HandleBegin${1:Component}Overlap(

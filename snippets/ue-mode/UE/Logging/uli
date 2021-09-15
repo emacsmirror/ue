@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: DEFINE_LOG_CATEGORY
-# key: ulc
+# key: uli
 # condition: (ue--yas-can-expand-p)
 # --
 DEFINE_LOG_CATEGORY(Log${1:Category});

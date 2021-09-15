@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: Declare OnComponentBeginOverlap event handler
-# key: uhoncomponentbeginoverlap
+# key: udoncomponentbeginoverlap
 # condition: (ue--yas-can-expand-p)
 # --
 UFUNCTION()
