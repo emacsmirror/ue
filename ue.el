@@ -7,7 +7,7 @@
 ;; Version:   0.0.1
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
-;; Package-Requires: ((emacs "25.1") (projectile "0.12.0"))
+;; Package-Requires: ((emacs "26.1") (projectile "0.12.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,11 +71,11 @@
   :type  'boolean)
 
 (defcustom ue-mode-line-prefix " ue"
-  "Mode line lighter prefix for `ue-mode'.")
+  "Mode line lighter prefix for command `ue-mode'.")
 
 (defcustom ue-globally-ignored-files
   '("compile_commands.json")
-  "A list of files globally ignored by `ue-mode'.
+  "A list of files globally ignored by command `ue-mode'.
 
 Note that files aren't filtered if `projectile-indexing-method' is set to `alien'."
   :group 'ue
@@ -89,18 +89,19 @@ Note that files aren't filtered if `projectile-indexing-method' is set to `alien
       "*Saved"
       "*Script"
       "*.uemacs")
-  "A list of directories globally ignored by `ue-mode'.
+  "A list of directories globally ignored by command `ue-mode'.
+
 Regular expressions can be used.
 
 Strings that don't start with * are only ignored at the top level
-of the project. Strings that start with * are ignored everywhere
-in the project, as if there was no *.  So note that * when used as
-a prefix is not a wildcard; it is an indicator that the directory
-should be ignored at all levels, not just root.
+of the project.
 
-Examples: \"tmp\" ignores only ./tmp at the top level of the
-project, but not ./src/tmp. \"*tmp\" will ignore both ./tmp and
-./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
+Strings that start with `*' are ignored everywhere in the
+project, as if there was no `*'.
+
+When `*' used as a prefix is not a wildcard; it is an indicator
+that the directory should be ignored at all levels, not just
+root.
 
 Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
@@ -123,7 +124,8 @@ is set to `alien'."
     ".icns"
     ".uasset"
     ".umap")
-  "A list of file suffixes globally ignored by `ue-mode'.
+  "A list of file suffixes globally ignored by command `ue-mode'.
+
 Note that files aren't filtered if `projectile-indexing-method'
 is set to `alien'."
   :group 'ue
@@ -170,7 +172,7 @@ is set to `alien'."
   :group 'ue)
 
 (defcustom ue-keymap-prefix nil
-  "Keymap prefix for `ue-mode'."
+  "Keymap prefix for command `ue-mode'."
   :type  'string
   :group 'ue)
 
@@ -244,7 +246,7 @@ is set to `alien'."
   (ue--uemacs-expand-file-name ue--project-file))
 
 (defun ue--uemacs-project-target-file ()
-  "Return absolute path to a file that stores the project's current build target id."
+  "Return absolute path to a file that store the project's current build target id."
   (ue--uemacs-expand-file-name ue--project-target-file))
 
 (defun ue-project-metadata ()
@@ -286,7 +288,7 @@ in other buffers."
 	  (intern target-id))))))
 
 (defun ue--update-mode-line ()
-  "Update `ue-mode' mode-line for all project buffers."
+  "Update ue-mode's mode-line for all project buffers."
   (let* ((id              (ue--project-current-target-id-read))
 	 (id              (when (and id (ue-project-target-id-valid-p id)) id))
 	 (project         (projectile-acquire-root))
@@ -298,7 +300,7 @@ in other buffers."
   (force-mode-line-update))
 
 (defun ue--project-current-target-id-write (id)
-  "Save the given build target id to the file."
+  "Save the given build target ID to the file."
   (write-region (symbol-name id) nil (ue--uemacs-project-target-file))
   (ue--update-mode-line)
   id)
@@ -315,7 +317,8 @@ in other buffers."
 			 nil
 			 targets)))
     (ue--project-current-target-id-write (intern target-id))
-    ;; Need to clear projectile command caches otherwise it will use the old commands.
+    ;; Need to clear projectile command caches
+    ;; otherwise it will use the old commands.
     (clrhash projectile-compilation-cmd-map)
     (clrhash projectile-run-cmd-map)))
 
@@ -400,7 +403,7 @@ Return current target if ID is falsy."
   (font-lock-flush))
 
 (defun ue--ignore-buffer-p ()
-  "Return t if `ue-mode' should not be enabled for the current buffer."
+  "Return t if command `ue-mode' should not be enabled for the current buffer."
   (string-match-p
    "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
    (buffer-name)))
@@ -452,15 +455,18 @@ With a prefix arg INVALIDATE-CACHE invalidates the cache first.
 If point is on a filename, `ue.el' first tries to search for that
 file in project:
 
-- If it finds just a file, it switches to that file instantly.  This works even
-if the filename is incomplete, but there's only a single file in the current project
-that matches the filename at point.
+- If it finds just a file, it switches to that file instantly.
+This works even if the filename is incomplete, but there's only a
+single file in the current project that matches the filename at
+point.
 
-- If it finds a list of files, the list is displayed for selecting.  A list of
-files is displayed when a filename appears more than one in the project or the
-filename at point is a prefix of more than two files in the project.
+- If it finds a list of files, the list is displayed for
+selecting.  A list of files is displayed when a filename appears
+more than one in the project or the filename at point is a prefix
+of more than two files in the project.
 
-- If it finds nothing, the list of all files in the project is displayed for selecting."
+- If it finds nothing, the list of all files in the project is
+displayed for selecting."
   (interactive "P")
   (projectile-find-file-dwim))
 
@@ -656,7 +662,7 @@ If the current buffer does not belong to a project, call `next-buffer'."
 	["Compile project"                ue-compile-project]
 	["Run project"                    ue-run-project]))
     map)
-  "Keymap for `ue-mode'.")
+  "Keymap for command `ue-mode'.")
 
 (define-minor-mode ue-mode
   "Minor mode for Unreal Engine projects based on `projectile-mode'.
@@ -672,16 +678,17 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (ue--update-mode-line)))
 
 (defun ue-on ()
-  "Enable `ue-mode' minor mode if this is an Unreal Engine based project."
+  "Enable command `ue-mode' if this is an Unreal Engine based project."
   (when (and (not (ue--ignore-buffer-p))
 	     (projectile-project-p)
 	     (ue-project-root))
     (ue-mode +1)))
 
+;;;###autoload
 (define-globalized-minor-mode ue-global-mode ue-mode ue-on)
 
 (defun ue-off ()
-  "Disable `ue-mode' minor mode."
+  "Disable command `ue-mode'."
   (ue-mode -1))
 
 ;; Teach projectile how to recognize `ue.el' projects
