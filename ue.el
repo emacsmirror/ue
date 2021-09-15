@@ -47,10 +47,6 @@
 ;; TODO: Recommend installing ag Emacs package.
 ;; TODO: Class wizards
 ;; TODO: Debugging (lsp?)
-;; TODO: Add run commands
-;;       Editor configurations run the editor with the name of the project. The solution configuration affects the name
-;;       of the Engine executable (UE4Editor-Mac-DebugGame, etc).
-;;       Game configurations run the binary from the Binary project directory.
 ;; TODO: .NET projects?
 ;; TODO: Project.Target.cs files
 ;; TODO: Config files (*.ini)
@@ -70,7 +66,7 @@
   :group  'projectile)
 
 (defcustom ue-expand-snippets t
-  "Enable Unreal Engine C++ yasnippet snippets."
+  "Enable Unreal Engine C++ `yasnippet' snippets."
   :group 'ue
   :type  'boolean)
 
@@ -79,8 +75,9 @@
 
 (defcustom ue-globally-ignored-files
   '("compile_commands.json")
-  "A list of files globally ignored by projectile.
-Note that files aren't filtered if `projectile-indexing-method' is set to 'alien'."
+  "A list of files globally ignored by `ue-mode'.
+
+Note that files aren't filtered if `projectile-indexing-method' is set to `alien'."
   :group 'ue
   :type '(repeat string))
 
@@ -92,7 +89,7 @@ Note that files aren't filtered if `projectile-indexing-method' is set to 'alien
       "*Saved"
       "*Script"
       "*.uemacs")
-  "A list of directories globally ignored by projectile.
+  "A list of directories globally ignored by `ue-mode'.
 Regular expressions can be used.
 
 Strings that don't start with * are only ignored at the top level
@@ -106,7 +103,7 @@ project, but not ./src/tmp. \"*tmp\" will ignore both ./tmp and
 ./src/tmp, but not ./not-a-tmp or ./src/not-a-tmp.
 
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'ue
   :type '(repeat string))
 
@@ -126,9 +123,9 @@ is set to 'alien'."
     ".icns"
     ".uasset"
     ".umap")
-  "A list of file suffixes globally ignored by projectile.
+  "A list of file suffixes globally ignored by `ue-mode'.
 Note that files aren't filtered if `projectile-indexing-method'
-is set to 'alien'."
+is set to `alien'."
   :group 'ue
   :type '(repeat string))
 
@@ -177,11 +174,6 @@ is set to 'alien'."
   :type  'string
   :group 'ue)
 
-(defcustom ue-discover-bind "c-u"
-  "The :bind option that will be passed `discover-add-context-menu' if available."
-  :type  'string
-  :group 'ue)
-
 (defvar ue--font-lock-attributes nil)
 (defvar ue--font-lock-generated-body-macro nil)
 
@@ -214,7 +206,7 @@ is set to 'alien'."
   "The name of the file that contains Unreal Emacs project metadata.")
 
 (defconst ue--project-target-file "target"
-  "The name of the file that contains current build/run target name.")
+  "The name of the file that contains current build target id.")
 
 (defvar-local ue--mode-line ue-mode-line-prefix)
 
@@ -238,21 +230,21 @@ is set to 'alien'."
 	    root)))))
 
 (defun ue--uemacs-dir ()
-  "Return absolute path '.uemacs' directory if this is Unreal Emacs project, nil otherwise."
+  "Return absolute path to `.uemacs' directory if this is Unreal Emacs project, nil otherwise."
   (when-let ((root (ue-project-root)))
     (expand-file-name ue--uemacs-dir root)))
 
 (defun ue--uemacs-expand-file-name (file-name)
-  "Return absolute path to FILE-NAME relative to '.uemacs' directory."
+  "Return absolute path to FILE-NAME relative to `.uemacs' directory."
   (when-let ((uemacs-dir (ue--uemacs-dir)))
     (expand-file-name file-name uemacs-dir)))
 
 (defun ue--uemacs-project-file ()
-  "Return absolute path to the 'project.json' file."
+  "Return absolute path to the `project.json' file."
   (ue--uemacs-expand-file-name ue--project-file))
 
 (defun ue--uemacs-project-target-file ()
-  "Return absolute path to the project's current run/build target file."
+  "Return absolute path to a file that stores the project's current build target id."
   (ue--uemacs-expand-file-name ue--project-target-file))
 
 (defun ue-project-metadata ()
@@ -267,21 +259,23 @@ is set to 'alien'."
 	    json)))))
 
 (defun ue-project-targets ()
-  "Return a list of the run/build targets for the current project."
+  "Return a list of the build targets for the current project."
   (let-alist (ue-project-metadata) .Project.Targets))
 
 (defun ue-project-target-ids ()
-  "Return a list of the run/build target identifiers for the current project.
-A target id is $TargetName$-$Platform$-$Configuration$."
+  "Return a list of the build target identifiers for the current project.
+
+A target id has the following format: `$TargetName$-$Platform$-$Configuration$'."
   (ue--alist-keys (ue-project-targets)))
 
-(defun ue-project-target-id-valid-p (target-id)
-  "Check if the given project run/build TARGET-ID is valid."
-  (and (symbolp target-id)
-       (member target-id (ue-project-target-ids))))
+(defun ue-project-target-id-valid-p (id)
+  "Check if the given project build target ID is valid."
+  (and (symbolp id)
+       (member  id (ue-project-target-ids))))
 
 (defun ue--project-current-target-id-read ()
-  "Return saved run/build target id as a symbol.
+  "Return previously saved build target id as a symbol.
+
 We cannot cache it because a user can switch to another target
 in other buffers."
   (when-let ((target-file (ue--uemacs-project-target-file)))
@@ -292,7 +286,7 @@ in other buffers."
 	  (intern target-id))))))
 
 (defun ue--update-mode-line ()
-  "Update ue-mode mode-line for all project buffers."
+  "Update `ue-mode' mode-line for all project buffers."
   (let* ((id              (ue--project-current-target-id-read))
 	 (id              (when (and id (ue-project-target-id-valid-p id)) id))
 	 (project         (projectile-acquire-root))
@@ -304,17 +298,16 @@ in other buffers."
   (force-mode-line-update))
 
 (defun ue--project-current-target-id-write (id)
-  "Save the given run/build target ID to the current target file."
+  "Save the given build target id to the file."
   (write-region (symbol-name id) nil (ue--uemacs-project-target-file))
   (ue--update-mode-line)
   id)
 
-(defun ue-select-project-target ()
-  "Prompt a user to pick a default run/build target from the list."
-  (interactive)
+(defun ue--select-project-build-target ()
+  "Prompt a user to pick a default build target id from the list."
   (when-let ((targets   (mapcar #'symbol-name (ue-project-target-ids)))
 	     (target-id (completing-read
-			 "Run/Build Target: "
+			 "Build target: "
 			 targets
 			 nil
 			 t
@@ -326,35 +319,39 @@ in other buffers."
     (clrhash projectile-compilation-cmd-map)
     (clrhash projectile-run-cmd-map)))
 
-(defun ue-current-project-target ()
-  "Return current project target if set and valid or ask user to set it."
+(defun ue-current-project-build-target ()
+  "Return the project's build target if set and valid or prompts user to set it."
   (let ((saved-target (ue--project-current-target-id-read)))
     (if (and saved-target
 	     (ue-project-target-id-valid-p saved-target))
 	saved-target
-      (ue-select-project-target))))
+      (ue--select-project-target))))
 
 (defun ue-project-target-get (id)
-  "Return alist for the given run/build target ID."
+  "Return alist for the given build target ID."
   (alist-get id (ue-project-targets)))
 
 (defun ue-project-target-build-command (id)
-  "Return build command for the given run/build target ID."
+  "Return build command for the given build target ID."
   (let-alist (ue-project-target-get id) .Tasks.Build))
 
 (defun ue-project-target-run-command (id)
-  "Return run command for the given run/build target ID."
+  "Return run command for the given build target ID."
   (let-alist (ue-project-target-get id) .Tasks.Run))
 
-(defun ue-project-build-command (&optional target)
-  "Return build command for the given run/build TARGET id."
-  (ue-project-target-build-command (or target
-				       (ue-current-project-target))))
+(defun ue-project-build-command (&optional id)
+  "Return build command for the given build target ID.
 
-(defun ue-project-run-command (&optional target)
-  "Return build command for the given run/build TARGET id."
-  (ue-project-target-run-command (or target
-				     (ue-current-project-target))))
+Return current target if ID is falsy."
+  (ue-project-target-build-command
+   (or id
+       (ue-current-project-build-target))))
+
+(defun ue-project-run-command (&optional id)
+  "Return build command for the given build target ID."
+  (ue-project-target-run-command
+   (or id
+       (ue-current-project-build-target))))
 
 ;; Copied from yasnippet-snippets
 (defconst ue-snippets-dir
@@ -408,9 +405,225 @@ in other buffers."
    "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
    (buffer-name)))
 
+(defun ue-jump-between-header-and-implementation ()
+  "Jump between header and source files in the project."
+  (interactive)
+  (projectile-find-other-file))
+
+(defun ue-switch-to-buffer ()
+  "Display a list of all project buffers currently open."
+  (interactive)
+  (projectile-switch-to-buffer))
+
+(defun ue-find-dir (&optional invalidate-cache)
+  "Display a list of all directories in the project.
+
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
+  (interactive "P")
+  (projectile-find-dir invalidate-cache))
+
+(defun ue-dired ()
+  "Open `dired' at the root of the project."
+  (interactive)
+  (projectile-dired))
+
+(defun ue-recentf ()
+  "Show a list of recently visited files in the project."
+  (interactive)
+  (projectile-recentf))
+
+(defun ue-edit-dir-locals ()
+  "Edit or create a .dir-locals.el file of the project."
+  (interactive)
+  (projectile-edit-dir-locals))
+
+(defun ue-find-file (&optional invalidate-cache)
+  "Jump to the project's file using completion.
+
+With a prefix arg INVALIDATE-CACHE invalidates the cache first."
+  (interactive "P")
+  (projectile-find-file invalidate-cache))
+
+(defun ue-find-file-dwim (&optional invalidate-cache)
+  "Jump to a project's files using completion based on context.
+
+With a prefix arg INVALIDATE-CACHE invalidates the cache first.
+
+If point is on a filename, `ue.el' first tries to search for that
+file in project:
+
+- If it finds just a file, it switches to that file instantly.  This works even
+if the filename is incomplete, but there's only a single file in the current project
+that matches the filename at point.
+
+- If it finds a list of files, the list is displayed for selecting.  A list of
+files is displayed when a filename appears more than one in the project or the
+filename at point is a prefix of more than two files in the project.
+
+- If it finds nothing, the list of all files in the project is displayed for selecting."
+  (interactive "P")
+  (projectile-find-file-dwim))
+
+(defun ue-invalidate-cache ()
+  "Remove the current project's files from the cache."
+  (interactive)
+  (projectile-invalidate-cache nil))
+
+(defun ue-find-file-in-directory (&optional directory)
+  "Jump to a file in a (maybe regular) DIRECTORY.
+
+This command will first prompt for the directory the file is in."
+  (interactive "DFind file in directory: ")
+  (projectile-find-file-in-directory directory))
+
+(defun ue-multi-occur (&optional nlines)
+  "Do a `multi-occur' in the project's buffers.
+
+With a prefix argument, show NLINES of context."
+  (interactive "P")
+  (projectile-multi-occur nlines))
+
+(defun ue-grep (&optional regexp arg)
+  "Perform `rgrep' in the project.
+
+With a prefix ARG asks for files (globbing-aware) which to grep in.
+With prefix ARG of `-' (such as `M--'), default the files (without prompt),
+to `projectile-grep-default-files'.
+
+With REGEXP given, don't query the user for a regexp."
+  (interactive "i\nP")
+  (projectile-grep regexp arg))
+
+(defun ue-ripgrep (search-term &optional arg)
+  "Run a `ripgrep' (`rg') search with SEARCH-TERM at current project root.
+
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression.
+
+This command depends on of the Emacs packages `ripgrep' or `rg' being
+installed to work."
+  (interactive
+   (list (projectile--read-search-string-with-default
+          (format "Ripgrep %ssearch for" (if current-prefix-arg "regexp " "")))
+         current-prefix-arg))
+  (projectile-ripgrep search-term arg))
+
+(defun ue-ag (search-term &optional arg)
+  "Run an `ag' search with SEARCH-TERM in the project.
+
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression."
+  (interactive
+   (list (projectile--read-search-string-with-default
+          (format "Ag %ssearch for" (if current-prefix-arg "regexp " "")))
+         current-prefix-arg))
+  (projectile-ag search-term arg))
+
+(defun ue-save-project-buffers ()
+  "Save all project buffers."
+  (interactive)
+  (projectile-save-project-buffers))
+
+(defun ue-switch-build-target ()
+  "Prompt a user for a build target to switch to and switch to it if the user selected any."
+  (interactive)
+  (ue--select-project-build-target))
+
+(defun ue-version-control-status ()
+  "Open version control status window at the root of the project.
+
+For git projects `magit-status-internal' is used if available."
+  (interactive)
+  (projectile-vc nil))
+
+(defun ue-compile-project ()
+  "Compile project for the current build target.
+
+If there is no target set, prompt user to choose it and then compile."
+  (interactive)
+  (let ((compilation-read-command nil))
+    (projectile-compile-project nil)))
+
+(defun ue-run-project ()
+  "Run project for the current build target.
+
+If there is no target set, prompt user to choose it and then run."
+  (interactive)
+  (let ((compilation-read-command nil))
+    (projectile-run-project nil)))
+
+(defun ue-previous-project-buffer ()
+  "In selected window switch to the previous project buffer.
+
+If the current buffer does not belong to a project, call `previous-buffer'."
+  (interactive)
+  (projectile-previous-project-buffer))
+
+(defun ue-next-project-buffer ()
+  "In selected window switch to the next project buffer.
+
+If the current buffer does not belong to a project, call `next-buffer'."
+  (interactive)
+  (projectile-next-project-buffer))
+
 (defvar ue-command-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "t") #'ue-select-project-target)
+    ;; Switch between files with the same name but different extensions.
+    ;; Use this to switch between header and source files.
+    (define-key map (kbd "a") #'ue-jump-between-header-and-implementation)
+    ;; Display a list of all project buffers currently open.
+    (define-key map (kbd "b") #'ue-switch-to-buffer)
+    ;; Compile the project for current build target.
+    ;; If there is no target set, prompt a user to select one
+    ;; and then compile the project.
+    (define-key map (kbd "c") #'ue-compile-project)
+    ;; Display a list of all directories in the project.
+    ;; With a prefix argument it will clear the cache first.
+    (define-key map (kbd "d") #'ue-find-dir)
+    ;; Open the root of the project in dired.
+    (define-key map (kbd "D") #'ue-dired)
+    ;; Show a list of recently visited project files.
+    (define-key map (kbd "e") #'ue-recentf)
+    ;; Open the root dir-locals-file of the project.
+    (define-key map (kbd "E") #'ue-edit-dir-locals)
+    ;; Display a list of all files in the project.
+    ;; With a prefix argument it will clear the cache first.
+    (define-key map (kbd "f") #'ue-find-file)
+    ;; Jump to a project's files using completion based on context.
+    ;; With a prefix argument invalidates the cache first.
+    (define-key map (kbd "g") #'ue-find-file-dwim)
+    ;; Invalidate the project cache (if existing).
+    (define-key map (kbd "i") #'ue-invalidate-cache)
+    ;; Display a list of all files in a directory (that’s not necessarily a project).
+    (define-key map (kbd "l") #'ue-find-file-in-directory)
+    ;; Run `multi-occur' on all project buffers currently open.
+    (define-key map (kbd "o") #'ue-multi-occur)
+    ;; Run grep on the files in the project.
+    (define-key map (kbd "s g") #'ue-grep)
+    ;; Run `ripgrep' on the project, performing a literal search.
+    ;; Requires the presence of `rg.el'.
+    ;; With a prefix argument it will perform a regex search.
+    (define-key map (kbd "s r") #'ue-ripgrep)
+    ;; Run `ag' on the project, performing a literal search.
+    ;; Requires the presence of `ag.el'.
+    ;; With a prefix argument it will perform a regex search.
+    (define-key map (kbd "s s") #'ue-ag)
+    ;; Save all project buffers.
+    (define-key map (kbd "S") #'ue-save-project-buffers)
+    ;; Select a new build target for the current project.
+    ;; This affects run and compile commands.
+    (define-key map (kbd "t") #'ue-switch-build-target)
+    ;; Run the project using the current build target.
+    ;; If there is no target set, prompt a user to select one
+    ;; and then run the project.
+    (define-key map (kbd "u") #'ue-run-project)
+    ;; Open version control status window at the root of the project.
+    ;; For git projects `magit-status-internal' is used if available.
+    (define-key map (kbd "v") #'ue-version-control-status)
+    ;; Switch to the previous project buffer.
+    (define-key map (kbd "<left>") #'ue-previous-project-buffer)
+    ;; Switch to the next project buffer.
+    (define-key map (kbd "<right>") #'ue-next-project-buffer)
     map)
   "Keymap after `ue-keymap-prefix'.")
 (fset 'ue-command-map ue-command-map)
@@ -421,12 +634,32 @@ in other buffers."
       (define-key map ue-keymap-prefix 'ue-command-map))
     (easy-menu-define ue-mode-menu map
       "Menu for ue-mode"
-      '("UE" ["Switch target" ue-select-project-target]))
+      '("UE"
+	["Find file"                      ue-find-file]
+	["Find directory"                 ue-find-dir]
+        ["Find file in directory"         ue-find-file-in-directory]
+	"--"
+        ["Jump between header and source" ue-jump-between-header-and-implementation]
+	["Previous buffer"                ue-previous-project-buffer]
+        ["Next buffer"                    ue-next-project-buffer]
+	["Save project buffers"           ue-save-project-buffers]
+	"--"
+	["Switch build target"            ue-switch-build-target]
+	["Invalidate cache"               ue-invalidate-cache]
+        ;;["Refresh project"]               ue-refresh-project ;; (regenerate project files)
+	"--"
+        ["Search in project (grep)"       ue-grep]
+        ["Search in project (ag)"         ue-ag]
+        ["Replace in project"             ue-replace]
+        ["Multi-occur in project"         ue-multi-occur]
+	"--"
+	["Compile project"                ue-compile-project]
+	["Run project"                    ue-run-project]))
     map)
   "Keymap for `ue-mode'.")
 
 (define-minor-mode ue-mode
-  "Minor mode for Unreal Engine projects based on projectile-mode.
+  "Minor mode for Unreal Engine projects based on `projectile-mode'.
 
 \\{ue-mode-map}"
   :init-value nil
@@ -439,7 +672,7 @@ in other buffers."
     (ue--update-mode-line)))
 
 (defun ue-on ()
-  "Enable 'ue-mode' minor mode if this is an Unreal Engine based project."
+  "Enable `ue-mode' minor mode if this is an Unreal Engine based project."
   (when (and (not (ue--ignore-buffer-p))
 	     (projectile-project-p)
 	     (ue-project-root))
@@ -448,7 +681,7 @@ in other buffers."
 (define-globalized-minor-mode ue-global-mode ue-mode ue-on)
 
 (defun ue-off ()
-  "Disable 'ue-mode' minor mode."
+  "Disable `ue-mode' minor mode."
   (ue-mode -1))
 
 ;; Teach projectile how to recognize `ue.el' projects
