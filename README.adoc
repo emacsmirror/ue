@@ -51,7 +51,7 @@ The  {project-name}  is   based  on  {uri-projectile}[Projectile]  and
 extends it with Unreal Engine projects support.
 
 It  supports  almost  all  Projectile features  except  debugging  and
-testing. They will be added in the future.
+testing. There plans to add these features in the future.
 
 It also installs a few snippets  specific to Unreal Engine and enables
 syntax highlighting of its reflection attributes and macros in the C++
@@ -128,7 +128,7 @@ Every event snippet uses the same mnemonic rules:
 ....
  +--- Operation
  |    i-mplement event handler
- |    d-efine event handler
+ |    d-eclare event handler
  |    s-ubscribe to event
  V
 uioncomponentbeginoverlap
