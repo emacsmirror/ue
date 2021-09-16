@@ -65,7 +65,9 @@
   :type  'boolean)
 
 (defcustom ue-mode-line-prefix " ue"
-  "Mode line lighter prefix for command `ue-mode'.")
+  "Mode line lighter prefix for command `ue-mode'."
+  :group 'ue
+  :type  'string)
 
 (defcustom ue-globally-ignored-files
   '("compile_commands.json")
@@ -286,7 +288,6 @@ in other buffers."
   (let* ((id              (ue--project-current-target-id-read))
 	 (id              (when (and id (ue-project-target-id-valid-p id)) id))
 	 (project         (projectile-acquire-root))
-         (project-name    (projectile-project-name project))
          (project-buffers (projectile-project-buffers project))
 	 (mode-line       (format "%s[%s]" ue-mode-line-prefix (or id "?"))))
     (dolist (buf project-buffers)
@@ -322,7 +323,7 @@ in other buffers."
     (if (and saved-target
 	     (ue-project-target-id-valid-p saved-target))
 	saved-target
-      (ue--select-project-target))))
+      (ue--select-project-build-target))))
 
 (defun ue-project-target-get (id)
   "Return alist for the given build target ID."
@@ -473,7 +474,7 @@ of more than two files in the project.
 - If it finds nothing, the list of all files in the project is
 displayed for selecting."
   (interactive "P")
-  (projectile-find-file-dwim))
+  (projectile-find-file-dwim invalidate-cache))
 
 (defun ue-invalidate-cache ()
   "Remove the current project's files from the cache."
