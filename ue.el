@@ -342,6 +342,11 @@ in other buffers."
   "Return run command for the given build target ID."
   (let-alist (ue-project-target-get id) .Tasks.Run))
 
+(defun ue-project-target-uht-command (id)
+  "Return command that runs UnrealHeaderTool aka UHT for the given build target ID."
+  (when-let ((build-command (ue-project-target-build-command id)))
+    (concat build-command " -SkipBuild")))
+
 (defun ue-project-build-command (&optional id)
   "Return build command for the given build target ID.
 
@@ -353,6 +358,12 @@ Return current target if ID is falsy."
 (defun ue-project-run-command (&optional id)
   "Return build command for the given build target ID."
   (ue-project-target-run-command
+   (or id
+       (ue-current-project-build-target))))
+
+(defun ue-project-uht-command (&optional id)
+  "Return command that runs UnrealHeaderTool aka UHT for the given build target ID."
+  (ue-project-target-uht-command
    (or id
        (ue-current-project-build-target))))
 
@@ -558,6 +569,16 @@ If there is no target set, prompt user to choose it and then run."
   (let ((compilation-read-command nil))
     (projectile-run-project nil)))
 
+(defun ue-uht-project ()
+    "Run UnrealHeaderTool aka UHT on the project for the current build target.
+
+If there is no target set, prompt user to choose it and then run UHT."
+    (interactive)
+    (let ((compilation-read-command nil)
+	  (uht-command              (ue-project-uht-command)))
+      (ue-save-project-buffers)
+      (compile uht-command projectile-run-use-comint-mode)))
+
 (defun ue-previous-project-buffer ()
   "In selected window switch to the previous project buffer.
 
@@ -604,6 +625,8 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (define-key map (kbd "l") #'ue-find-file-in-directory)
     ;; Run `multi-occur' on all project buffers currently open.
     (define-key map (kbd "o") #'ue-multi-occur)
+    ;; Run `UnrealHeaderTool' for the project to generate header and source files.
+    (define-key map (kbd "R") #'ue-uht-project)
     ;; Run grep on the files in the project.
     (define-key map (kbd "s g") #'ue-grep)
     ;; Run `ripgrep' on the project, performing a literal search.
@@ -652,7 +675,7 @@ If the current buffer does not belong to a project, call `next-buffer'."
 	"--"
 	["Switch build target"            ue-switch-build-target]
 	["Invalidate cache"               ue-invalidate-cache]
-	;;["Refresh project"]               ue-refresh-project ;; (regenerate project files)
+	["Run UnrealHeaderTool"           ue-uht-project]
 	"--"
         ["Search in project using grep"   ue-grep]
         ["Search in project using ag"     ue-ag]

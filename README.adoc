@@ -51,7 +51,7 @@ The  {project-name}  is   based  on  {uri-projectile}[Projectile]  and
 extends it with Unreal Engine projects support.
 
 It  supports  almost  all  Projectile features  except  debugging  and
-testing. There plans to add these features in the future.
+testing. There are plans to add these features in the future.
 
 It also installs a few snippets  specific to Unreal Engine and enables
 syntax highlighting of its reflection attributes and macros in the C++
@@ -300,17 +300,21 @@ project).
 Run {uri-multi-occur}[multi-occur]  on all project  buffers currently
 open.
 
+[[ue-uht-project,`ue-uht-project`]]`ue-uht-project`::
+Run UnrealHeaderTool  on the project.  Use this option  to synchronize
+generated files with your changes in the project's header files.
+
 [[ue-grep,`ue-grep`]]`ue-grep`::
 Run {uri-grep}[grep] on the files in the project.
 
 [[ue-ripgrep,`ue-ripgrep`]]`ue-ripgrep`::
-Run  {uri-ripgrep}[ripgrep] on  the  project,  performing a  literal
-search.  Requires  {uri-rg}[rg.el] to  be installed.  With  a prefix
+Run  {uri-ripgrep}[ripgrep]  on  the  project,  performing  a  literal
+search.   Requires {uri-rg}[rg.el]  to  be installed.   With a  prefix
 argument it will perform a regex search.
 
 [[ue-ag,`ue-ag`]]`ue-ag`::
-Run {uri-the-silver-searcher}[the_silver_searcher]  aka `ag`  on the
-project, performing a literal search. Requires {uri-ag}[ag.el] to be
+Run  {uri-the-silver-searcher}[the_silver_searcher]  aka `ag`  on  the
+project, performing  a literal search. Requires  {uri-ag}[ag.el] to be
 installed.  With a prefix argument it will perform a regex search.
 
 [[ue-save-project-buffers,`ue-save-project-buffers`]]`ue-save-project-buffers`::
@@ -355,6 +359,7 @@ the prefix.
 |kbd:[C-c u i]       | <<ue-invalidate-cache>>
 |kbd:[C-c u l]       | <<ue-find-file-in-directory>>
 |kbd:[C-c u o]       | <<ue-multi-occur>>
+|kbd:[C-c u R]       | <<ue-uht-project>>
 |kbd:[C-c u s g]     | <<ue-grep>>
 |kbd:[C-c u s r]     | <<ue-ripgrep>>
 |kbd:[C-c u s s]     | <<ue-ag>>
