@@ -337,7 +337,7 @@ in other buffers."
   (let-alist (ue-project-target-get id) .Tasks.Run))
 
 (defun ue-project-target-uht-command (id)
-  "Return command that runs UnrealHeaderTool aka UHT for the given build target ID."
+  "Return command that run UnrealHeaderTool aka UHT for the given build target ID."
   (when-let ((build-command (ue-project-target-build-command id)))
     (concat build-command " -SkipBuild")))
 
@@ -356,7 +356,7 @@ Return current target if ID is falsy."
        (ue-current-project-build-target))))
 
 (defun ue-project-uht-command (&optional id)
-  "Return command that runs UnrealHeaderTool aka UHT for the given build target ID."
+  "Return command that run UnrealHeaderTool aka UHT for the given build target ID."
   (ue-project-target-uht-command
    (or id
        (ue-current-project-build-target))))
