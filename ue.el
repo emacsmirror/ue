@@ -4,10 +4,10 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   0.0.1
+;; Version:   1.0.0
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
-;; Package-Requires: ((emacs "26.1") (projectile "0.12.0"))
+;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,12 +39,6 @@
 (require 'projectile)
 (require 'json)
 
-;; TODO: *A*ctors
-;;       *I*nterfaces
-;;       *U*Objects
-;;       *F*Classes
-;; TODO: Recommend to switch away from projectile alien mode.
-;; TODO: Recommend installing ag Emacs package.
 ;; TODO: Class wizards
 ;; TODO: Debugging (lsp?)
 ;; TODO: .NET projects?
