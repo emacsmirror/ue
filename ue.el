@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.0
+;; Version:   1.0.1
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -39,6 +39,11 @@
 (require 'projectile)
 (require 'json)
 
+(defvar yas-snippet-dirs)
+
+(declare-function yas-load-directory      "yasnippet")
+(declare-function yas-activate-extra-mode "yasnippet")
+
 ;; TODO: Class wizards
 ;; TODO: Debugging (lsp?)
 ;; TODO: .NET projects?
@@ -52,7 +57,7 @@
 
 (defun ue--alist-keys (alist)
   "Return keys of the given ALIST."
-  (mapcar 'car alist))
+  (mapcar #'car alist))
 
 (defgroup ue nil
   "A minor mode for Unreal Engine projects."
@@ -373,12 +378,17 @@ Return current target if ID is falsy."
       byte-compile-current-file)
      (:else (buffer-file-name))))))
 
+(defvar ue--snippets-installed nil
+  "A flag that indicates whether UE snippets are installed.")
+
 (defun ue--register-snippets ()
   "Add Unreal Engine C++ snippets to yasnippet if it is available."
   (when (and ue-expand-snippets
-	 (require 'yasnippet nil t))
+	     (not ue--snippets-installed)
+	     (require 'yasnippet nil t))
     (add-to-list 'yas-snippet-dirs 'ue-snippets-dir t)
-    (yas-load-directory ue-snippets-dir t)))
+    (yas-load-directory ue-snippets-dir t)
+    (setq ue--snippets-installed t)))
 
 (defun ue--activate-snippets ()
   "Instruct yasnippet to consider Unreal Engine C++ snippets for expansion."
@@ -400,8 +410,7 @@ Return current target if ID is falsy."
 (defun ue--register-keywords ()
   "Enable colouring of Unreal Engine keywords."
   (ue-font-lock-add-keywords 'c++-mode)
-  (font-lock-flush)
-  (setf ue--keywords-registered t))
+  (font-lock-flush))
 
 (defun ue--unregister-keywords ()
   "Disable colouring of Unreal Engine keywords."
@@ -691,6 +700,7 @@ If the current buffer does not belong to a project, call `next-buffer'."
   :keymap     ue-mode-map
   (when ue-mode
     (ue--register-keywords)
+    (ue--register-snippets)
     (ue--activate-snippets)
     (ue--setup-ignore-lists)
     (ue--update-mode-line)))
@@ -714,10 +724,6 @@ If the current buffer does not belong to a project, call `next-buffer'."
 				  :project-file ue--uemacs-dir
 				  :compile      #'ue-project-build-command
 				  :run          #'ue-project-run-command)
-
-;; Add Unreal Engine C++ snippets
-(with-eval-after-load "yasnippet"
-  (ue--register-snippets))
 
 (provide 'ue)
 
