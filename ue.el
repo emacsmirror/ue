@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.1
+;; Version:   1.0.2
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -41,8 +41,8 @@
 
 (defvar yas-snippet-dirs)
 
-(declare-function yas-load-directory      "yasnippet")
-(declare-function yas-activate-extra-mode "yasnippet")
+(declare-function yas-load-directory      "ext:yasnippet")
+(declare-function yas-activate-extra-mode "ext:yasnippet")
 
 ;; TODO: Class wizards
 ;; TODO: Debugging (lsp?)
