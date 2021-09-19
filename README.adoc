@@ -16,6 +16,9 @@
 :uri-ripgrep: https://github.com/BurntSushi/ripgrep
 :uri-the-silver-searcher: https://github.com/ggreer/the_silver_searcher
 :uri-yasnippet: https://github.com/joaotavora/yasnippet
+:uri-melpa: https://melpa.org/#/
+:uri-use-package: https://github.com/jwiegley/use-package
+:uri-example-emacs-config: https://gitlab.com/unrealemacs/emacsconfig
 
 == Abstract
 
@@ -57,10 +60,29 @@ It also installs a few snippets  specific to Unreal Engine and enables
 syntax highlighting of its reflection attributes and macros in the C++
 code.
 
-The {project-name}  makes it  much more convenient  to work  on Unreal
-Engine      projects      in       Emacs.       Refer      to      the
-<<user-content-interactive-commands>>  section  to   get  an  idea  of
-commands available to you.
+=== Unreal Engine Project Management
+
+In short, you can:
+
+- Compile Unreal Engine projects.
+- Run Unreal Engine projects.
+- Switch between build configurations.
+- Run `UnrealHeaderTool` to refresh the code it generates.
+- Jump to a file in a project.
+- Jump to files at point in a project.
+- Jump to a directory in a project.
+- Jump to a file in a directory.
+- Jump to a project buffer.
+- Jump between source and header files of the same class.
+- Kill all project buffers.
+- Save all project buffers.
+- Multi-occur in project buffers.
+- Grep in a project.
+- etc.
+
+The {project-name} makes  it more convenient to work  on Unreal Engine
+projects in Emacs.  Refer to the <<user-content-interactive-commands>>
+section to get a full list of commands available to you.
 
 === Enhanced Syntax Highlighting
 
@@ -187,8 +209,35 @@ image::images/ue-context-menu.png["ue.el context menu",338,463]
 
 == Installation
 
-The project  is not on MELPA  yet that is  why you have to  install it
-manually.
+The {project-name} is available on the major community maintained repo
+– {uri-melpa}[MELPA].
+
+=== package.el
+
+The `package.el` is the built-in package manager in Emacs.
+
+`M-x` `package-install` `[RET]` `ue` `[RET]`
+
+Then add the following lines to your Emacs config:
+
+[source,elisp]
+----
+(require 'ue)
+(define-key ue-mode-map (kbd "C-c u") 'ue-command-map)
+(ue-global-mode +1)
+----
+
+=== use-package.el
+
+The  {uri-use-package}[`use-package.el`]  is   a  declarative  way  of
+expressing package configuration in Emacs.
+
+[source,elisp]
+----
+(use-package ue
+  :init   (ue-global-mode +1)
+  :config (define-key ue-mode-map (kbd "C-c u") 'ue-command-map))
+----
 
 === Manual
 
@@ -212,7 +261,8 @@ Then in the `init.el`:
 [source,elisp]
 ----
 (require 'ue)
-(ue-global-mode)
+(define-key ue-mode-map (kbd "C-c u") 'ue-command-map)
+(ue-global-mode +1)
 ----
 
 == Configuration
@@ -225,6 +275,18 @@ activating `ue-global-mode`:
 ----
 (define-key ue-mode-map (kbd "C-c u") 'ue-command-map)
 ----
+
+You   can   also  refer   to   {uri-example-emacs-config}[EmacsConfig]
+repository which  provides an opionated Unreal  Emacs configuration by
+integrating a few packages together. It has the following features:
+
+- Autocompletion via  `lsp` and `clangd` using  the database generated
+by {uri-plugin}[Unreal Editor plug-in].
+- Unreal Engine project management via `ue.el`.
+- Snippets via `yasnippet`.
+- Code formatting via `clang-format`.
+- Code quality analysis via `flycheck`.
+- And more.
 
 == Usage
 

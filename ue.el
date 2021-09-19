@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.2
+;; Version:   1.0.3
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
