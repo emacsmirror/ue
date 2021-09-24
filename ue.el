@@ -562,7 +562,8 @@ For git projects `magit-status-internal' is used if available."
 
 If there is no target set, prompt user to choose it and then compile."
   (interactive)
-  (let ((compilation-read-command nil))
+  (let ((compilation-read-command  nil)
+	(compilation-scroll-output t))
     (projectile-compile-project nil)))
 
 (defun ue-run-project ()
@@ -570,7 +571,8 @@ If there is no target set, prompt user to choose it and then compile."
 
 If there is no target set, prompt user to choose it and then run."
   (interactive)
-  (let ((compilation-read-command nil))
+  (let ((compilation-read-command  nil)
+	(compilation-scroll-output t))
     (projectile-run-project nil)))
 
 (defun ue-uht-project ()
@@ -578,8 +580,9 @@ If there is no target set, prompt user to choose it and then run."
 
 If there is no target set, prompt user to choose it and then run UHT."
     (interactive)
-    (let ((compilation-read-command nil)
-	  (uht-command              (ue-project-uht-command)))
+    (let ((compilation-read-command  nil)
+	  (compilation-scroll-output t)
+	  (uht-command               (ue-project-uht-command)))
       (ue-save-project-buffers)
       (compile uht-command projectile-run-use-comint-mode)))
 
