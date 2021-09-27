@@ -423,6 +423,277 @@ Return current target if ID is falsy."
    "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
    (buffer-name)))
 
+;;; Path helpers
+
+(defconst ue--path-separator "/"
+  "Standard path separator.")
+
+(defun ue--path-components (path)
+  "Return list of PATH components."
+  (split-string path ue--path-separator))
+
+(defun ue--path-from-components (components)
+  "Return a path created from its COMPONENTS."
+  (string-join components ue--path-separator))
+
+(defun ue--path-components-after (components component)
+  "Return path COMPONENTS that come after the COMPONENT.
+
+COMPONENT could be a regexp."
+  (thread-last components
+    (seq-reverse)
+    (seq-take-while (lambda (c)
+		      (not (string-match-p component c))))
+    (seq-reverse)))
+
+(defun ue--path-after-component (path component)
+  "Return sub path of the PATH that comes after COMPONENT.
+
+Return PATH if COMPONENT is nil or empty string.
+
+Return PATH if COMPONENT is not in the PATH.
+
+COMPONENT could be a regexp."
+  (when path
+    (if (and component
+	     (not (string-empty-p component)))
+	(thread-first path
+	  (ue--path-components)
+	  (ue--path-components-after component)
+	  (ue--path-from-components))
+      path)))
+
+(defun ue--path-components-member-p (components component)
+  "Return non-nil if the given path COMPONENT could be found in the COMPONENTS."
+  (member component components))
+
+;;; Class generation
+
+(defun ue--type-name-std-prefix (name)
+  "Return the standard Unreal type prefix for the given class NAME."
+  (substring name 0 1))
+
+;; TODO: Check if the file HAS std prefix
+(defun ue--type-name-sans-std-prefix (name)
+  "Drop standard Unreal type prefix from the NAME."
+  (substring name 1))
+
+(defun ue--type-generated-header-name (type)
+  "Return the name of the `.generated.h' file for the given TYPE."
+  (concat type ".generated.h"))
+
+(defvar ue--known-classes
+  '(("AActor"                    . "GameFramework/Actor.h")
+    ("ACharacter"                . "GameFramework/Character.h")
+    ("AGameModeBase"             . "GameFramework/GameModeBase.h")
+    ("AGameStateBase"            . "GameFramework/GameStateBase.h")
+    ("APawn"                     . "GameFramework/Pawn.h")
+    ("APlayerCameraManager"      . "Camera/PlayerCameraManager.h")
+    ("APlayerController"         . "GameFramework/PlayerController.h")
+    ("APlayerState"              . "GameFramework/PlayerState.h")
+    ("UActorComponent"           . "Components/ActorComponent.h")
+    ("UBlueprintFunctionLibrary" . "Kismet/BlueprintFunctionLibrary.h")
+    ("USceneComponent"           . "Components/SceneComponent.h")))
+
+(defun ue--known-class-header (name)
+  "Return the header of the class with the given NAME."
+  (alist-get name ue--known-classes nil nil #'string=))
+
+(defun ue--header-dir->source-dir (dir)
+  "Return the source directory from the given header DIR."
+  (let* ((path-components (ue--path-components dir))
+	 (access-idx (seq-position path-components "Public")))
+    (if access-idx
+	(ue--path-from-components
+	 (seq-concatenate 'list
+			  (seq-subseq path-components 0 access-idx)
+			  '("Private")
+			  (seq-subseq path-components (+ 1 access-idx))))
+      dir)))
+
+(defun ue--api-macro-name ()
+  "Return API export macro name for the project."
+  (upcase (concat (projectile-project-name) "_API")))
+
+(defun ue--rel-include-path (header)
+  "Return relative path to the HEADER which could be used to #include it."
+  (thread-first header
+    (ue--path-components)
+    (ue--path-components-after "Source")
+    (seq-rest)
+    (ue--path-components-after "Public")
+    (ue--path-components-after "Private")
+    (ue--path-from-components)))
+
+(defun ue--gen-include (file)
+  "Return C++ include directive for the FILE."
+  (concat "#include \"" file "\""))
+
+(defun ue--gen-includes (type headers)
+  "Return a string with include directives for the given TYPE and HEADERS."
+  (let* ((generated-h (ue--type-generated-header-name type))
+	 (headers     (append headers (list generated-h))))
+    (string-join (thread-last headers
+		   (append '("CoreMinimal"))
+		   (mapcar #'ue--gen-include))
+		 "\n")))
+
+(defun ue--gen-copyright (copyright)
+  "Return COPYRIGHT comment."
+  (concat "// " copyright))
+
+(defun ue--gen-pragma-once ()
+  "Return #pragma once."
+  "#pragma once")
+
+(defun ue--gen-class-declaration (class super-class api)
+  "Return `CLASS' declaration that inherits from `SUPER-CLASS'.
+
+`API' is API export macro."
+  (let ((prefix (ue--type-name-std-prefix super-class)))
+    (string-join
+     (list
+      "UCLASS()"
+      (concat "class " api " " prefix class ": public " super-class)
+      "{\n\tGENERATED_BODY()\n\npublic:\n\nprotected:\n\nprivate:\n};")
+     "\n")))
+
+(defun ue--gen-uinterface-declaration (interface)
+  "Return UINTERFACE declaration for `INTERFACE'."
+  (string-join
+   (list
+    "UINTERFACE(MinimalAPI)"
+    (concat "class U" interface ": public UInterface")
+    "{\n\tGENERATED_BODY()\n};")
+   "\n"))
+
+(defun ue--gen-iinterface-declaration (interface api)
+  "Return interface declaration for `INTERFACE'.
+
+`API' is API export macro."
+  (string-join
+   (list
+    (concat "class " api " I" interface)
+    "{\n\tGENERATED_BODY()\n\npublic:\n};")
+   "\n"))
+
+(defun ue--gen-class-header
+    (class super-class headers api copyright)
+  "Generate a header for the given `CLASS'.
+
+`SUPER-CLASS' is the name of the class to inherit from.
+`HEADERS' is the list of include files.
+`API' is the export macro.
+`COPYRIGHT' is the copyright string to put to the beginning of the
+header."
+  (string-join (list
+		(ue--gen-copyright copyright) "\n\n"
+		(ue--gen-pragma-once) "\n\n"
+		(ue--gen-includes class headers) "\n\n"
+		(ue--gen-class-declaration class super-class api))))
+
+(defun ue--gen-interface-header
+    (interface api copyright)
+  "Generate a header for the given `INTERFACE'.
+
+`SUPER-CLASS' is the name of the class to inherit from.
+`HEADERS' is the list of include files.
+`API' is the export macro.
+`COPYRIGHT' is the copyright string to put to the beginning of the
+header."
+  (string-join (list
+		(ue--gen-copyright copyright) "\n\n"
+		(ue--gen-pragma-once) "\n\n"
+		(ue--gen-includes interface '("UObject/Interface.h")) "\n\n"
+		(ue--gen-uinterface-declaration interface) "\n\n"
+		(ue--gen-iinterface-declaration interface api))))
+
+
+(defun ue--gen-source (header copyright)
+  "Generate source that includes the given HEADER and has COPYRIGHT comment.
+
+HEADER could be an absolute path.  The function constructs a
+relative one and uses it."
+  (let ((header (ue--rel-include-path header)))
+    (string-join
+     (list
+      (ue--gen-copyright copyright) "\n\n"
+      (ue--gen-include header) "\n\n"))))
+
+(defun ue--generate-class (header-dir class super-class)
+  "Create header and source files for the given `CLASS'.
+
+The class name should not include an Unreal prefix (A/U/S/I).
+It will use prefix of its SUPER-CLASS.
+
+The header will be generated in the HEADER-DIR.  The source will
+derive its location from the HEADER-DIR."
+  (let* ((source-dir   (ue--header-dir->source-dir header-dir))
+	 (header-file  (expand-file-name (concat class ".h")
+					 header-dir))
+	 (source-file  (expand-file-name (concat class ".cpp")
+					 source-dir))
+	 (api          (ue--api-macro-name))
+	 (super-header (ue--known-class-header super-class))
+	 (headers      (when super-header (list super-header)))
+	 (copyright    "TODO: Copyright"))
+    (make-directory header-dir t)
+    (make-directory source-dir t)
+    (write-region (ue--gen-class-header
+		   class
+		   super-class
+		   headers
+		   api
+		   copyright)
+		  ""
+		  header-file)
+    (write-region (ue--gen-source
+		   header-file
+		   copyright)
+		  ""
+		  source-file)
+    (find-file-existing header-file)
+    (find-file-existing source-file)))
+
+(defun ue--select-gen-super-class ()
+  "Prompt a user to pick a super class."
+  (let ((classes (ue--alist-keys ue--known-classes)))
+    (completing-read
+     "Super class: "
+     classes
+     nil
+     'confirm
+     nil
+     nil
+     classes)))
+
+(defun ue--select-gen-derived-class (super-class)
+  "Prompt a user to enter a class name derived from SUPER-CLASS."
+  (let* ((base-name    (ue--type-name-sans-std-prefix super-class))
+	 (project-name (projectile-project-name))
+	 (input        (read-string
+			"Derived class: "
+			(concat project-name base-name))))
+    (when (and input
+	       (string-match-p "^[a-zA-Z_][0-9a-zA-Z_]*$" input))
+      input)))
+
+(defun ue--select-gen-header-dir ()
+  "Prompt a user to select a header directory."
+  (read-directory-name
+   "Header dir: "))
+
+;;; Interactive commands
+
+(defun ue-generate-class ()
+  "Generate a new class for the project."
+  (interactive)
+  (when-let* ((super-class   (ue--select-gen-super-class))
+	      (derived-class (ue--select-gen-derived-class
+			      super-class))
+	      (header-dir    (ue--select-gen-header-dir)))
+    (ue--generate-class header-dir derived-class super-class)))
+
 (defun ue-jump-between-header-and-implementation ()
   "Jump between header and source files in the project."
   (interactive)
