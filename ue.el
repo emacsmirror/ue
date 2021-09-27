@@ -515,6 +515,28 @@ COMPONENT could be a regexp."
   "Return API export macro name for the project."
   (upcase (concat (projectile-project-name) "_API")))
 
+(defun ue--read-default-game-ini ()
+  "Return the lines of the Config/DefaultGame.ini file."
+  (let* ((config-dir  (expand-file-name "Config"
+				       (ue-project-root)))
+	 (config-file (expand-file-name "DefaultGame.ini"
+					config-dir)))
+    (when (file-exists-p config-file)
+      (with-temp-buffer
+	(insert-file-contents config-file)
+	(split-string (buffer-string) "\n" t)))))
+
+(defun ue--copyright ()
+  "Return project copyright string."
+  (when-let ((copyright-line "CopyrightNotice=")
+	     (lines          (ue--read-default-game-ini))
+	     (line           (cl-find-if
+			      (lambda (config-line)
+				(string-prefix-p copyright-line
+						 config-line))
+			      lines)))
+    (string-trim-left line copyright-line)))
+
 (defun ue--rel-include-path (header)
   "Return relative path to the HEADER which could be used to #include it."
   (thread-first header
@@ -636,7 +658,8 @@ derive its location from the HEADER-DIR."
 	 (api          (ue--api-macro-name))
 	 (super-header (ue--known-class-header super-class))
 	 (headers      (when super-header (list super-header)))
-	 (copyright    "TODO: Copyright"))
+	 (copyright    (ue--copyright))
+	 (copyright    (if copyright copyright "TODO: Copyright")))
     (make-directory header-dir t)
     (make-directory source-dir t)
     (write-region (ue--gen-class-header
