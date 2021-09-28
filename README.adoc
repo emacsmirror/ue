@@ -68,6 +68,8 @@ In short, you can:
 - Run Unreal Engine projects.
 - Switch between build configurations.
 - Run `UnrealHeaderTool` to refresh the code it generates.
+- Create an Unreal class.
+- Create an Unreal interface.
 - Jump to a file in a project.
 - Jump to files at point in a project.
 - Jump to a directory in a project.
@@ -358,6 +360,14 @@ Invalidate the project cache (if existing).
 Display a list  of all files in a directory  (that’s not necessarily a
 project).
 
+[[ue-generate-class,`ue-generate-class`]]`ue-generate-class`::
+Create a new Unreal class for the project.
+You should compile the project after that to make auto-completion accept the new class.
+
+[[ue-generate-interface,`ue-generate-interface`]]`ue-generate-interface`::
+Create a new Unreal interface for the project.
+You should compile the project after that to make auto-completion accept the new interface.
+
 [[ue-multi-occur,`ue-multi-occur`]]`ue-multi-occur`::
 Run {uri-multi-occur}[multi-occur]  on all project  buffers currently
 open.
@@ -420,6 +430,8 @@ the prefix.
 |kbd:[C-c u g]       | <<ue-find-file-dwim>>
 |kbd:[C-c u i]       | <<ue-invalidate-cache>>
 |kbd:[C-c u l]       | <<ue-find-file-in-directory>>
+|kbd:[C-c u n c]     | <<ue-generate-class>>
+|kbd:[C-c u n i]     | <<ue-generate-interface>>
 |kbd:[C-c u o]       | <<ue-multi-occur>>
 |kbd:[C-c u R]       | <<ue-uht-project>>
 |kbd:[C-c u s g]     | <<ue-grep>>

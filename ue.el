@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.4
+;; Version:   1.0.5
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -44,7 +44,6 @@
 (declare-function yas-load-directory      "ext:yasnippet")
 (declare-function yas-activate-extra-mode "ext:yasnippet")
 
-;; TODO: Class wizards
 ;; TODO: Debugging (lsp?)
 ;; TODO: .NET projects?
 ;; TODO: Project.Target.cs files
@@ -493,7 +492,8 @@ COMPONENT could be a regexp."
     ("APlayerState"              . "GameFramework/PlayerState.h")
     ("UActorComponent"           . "Components/ActorComponent.h")
     ("UBlueprintFunctionLibrary" . "Kismet/BlueprintFunctionLibrary.h")
-    ("USceneComponent"           . "Components/SceneComponent.h")))
+    ("USceneComponent"           . "Components/SceneComponent.h")
+    ("UObject"                   . "UObject/Object.h")))
 
 (defun ue--known-class-header (name)
   "Return the header of the class with the given NAME."
@@ -575,19 +575,17 @@ COMPONENT could be a regexp."
   (let ((prefix (ue--type-name-std-prefix super-class)))
     (string-join
      (list
-      "UCLASS()"
-      (concat "class " api " " prefix class ": public " super-class)
-      "{\n\tGENERATED_BODY()\n\npublic:\n\nprotected:\n\nprivate:\n};")
-     "\n")))
+      "UCLASS()\n"
+      (concat "class " api " " prefix class ": public " super-class "\n")
+      "{\n\tGENERATED_BODY()\n\npublic:\n\nprotected:\n\nprivate:\n};"))))
 
 (defun ue--gen-uinterface-declaration (interface)
   "Return UINTERFACE declaration for `INTERFACE'."
   (string-join
    (list
-    "UINTERFACE(MinimalAPI)"
-    (concat "class U" interface ": public UInterface")
-    "{\n\tGENERATED_BODY()\n};")
-   "\n"))
+    "UINTERFACE(MinimalAPI)\n"
+    (concat "class U" interface ": public UInterface\n")
+    "{\n\tGENERATED_BODY()\n};")))
 
 (defun ue--gen-iinterface-declaration (interface api)
   "Return interface declaration for `INTERFACE'.
@@ -595,9 +593,8 @@ COMPONENT could be a regexp."
 `API' is API export macro."
   (string-join
    (list
-    (concat "class " api " I" interface)
-    "{\n\tGENERATED_BODY()\n\npublic:\n};")
-   "\n"))
+    (concat "class " api " I" interface "\n")
+    "{\n\tGENERATED_BODY()\n\npublic:\n};")))
 
 (defun ue--gen-class-header
     (class super-class headers api copyright)
@@ -612,7 +609,7 @@ header."
 		(ue--gen-copyright copyright) "\n\n"
 		(ue--gen-pragma-once) "\n\n"
 		(ue--gen-includes class headers) "\n\n"
-		(ue--gen-class-declaration class super-class api))))
+		(ue--gen-class-declaration class super-class api) "\n")))
 
 (defun ue--gen-interface-header
     (interface api copyright)
@@ -628,7 +625,7 @@ header."
 		(ue--gen-pragma-once) "\n\n"
 		(ue--gen-includes interface '("UObject/Interface.h")) "\n\n"
 		(ue--gen-uinterface-declaration interface) "\n\n"
-		(ue--gen-iinterface-declaration interface api))))
+		(ue--gen-iinterface-declaration interface api) "\n")))
 
 
 (defun ue--gen-source (header copyright)
@@ -675,8 +672,40 @@ derive its location from the HEADER-DIR."
 		   copyright)
 		  ""
 		  source-file)
-    (find-file-existing header-file)
-    (find-file-existing source-file)))
+    (find-file-existing source-file)
+    (find-file-existing header-file)))
+
+;; TODO: Refactor
+(defun ue--generate-interface (header-dir interface)
+  "Create header and source files for the given Unreal `INTERFACE'.
+
+The interface name should not include an Unreal prefix (U/I).
+
+The header will be generated in the HEADER-DIR.  The source will
+derive its location from the HEADER-DIR."
+  (let* ((source-dir   (ue--header-dir->source-dir header-dir))
+	 (header-file  (expand-file-name (concat interface ".h")
+					 header-dir))
+	 (source-file  (expand-file-name (concat interface ".cpp")
+					 source-dir))
+	 (api          (ue--api-macro-name))
+	 (copyright    (ue--copyright))
+	 (copyright    (if copyright copyright "TODO: Copyright")))
+    (make-directory header-dir t)
+    (make-directory source-dir t)
+    (write-region (ue--gen-interface-header
+		   interface
+		   api
+		   copyright)
+		  ""
+		  header-file)
+    (write-region (ue--gen-source
+		   header-file
+		   copyright)
+		  ""
+		  source-file)
+    (find-file-existing source-file)
+    (find-file-existing header-file)))
 
 (defun ue--select-gen-super-class ()
   "Prompt a user to pick a super class."
@@ -690,6 +719,11 @@ derive its location from the HEADER-DIR."
      nil
      classes)))
 
+(defun ue--c-ident-p (name)
+  "Return non-nil if the given `NAME' is a valid C identifier."
+  (and name
+       (string-match-p "^[a-zA-Z_][0-9a-zA-Z_]*$" name)))
+
 (defun ue--select-gen-derived-class (super-class)
   "Prompt a user to enter a class name derived from SUPER-CLASS."
   (let* ((base-name    (ue--type-name-sans-std-prefix super-class))
@@ -697,8 +731,7 @@ derive its location from the HEADER-DIR."
 	 (input        (read-string
 			"Derived class: "
 			(concat project-name base-name))))
-    (when (and input
-	       (string-match-p "^[a-zA-Z_][0-9a-zA-Z_]*$" input))
+    (when (ue--c-ident-p input)
       input)))
 
 (defun ue--select-gen-header-dir ()
@@ -716,6 +749,16 @@ derive its location from the HEADER-DIR."
 			      super-class))
 	      (header-dir    (ue--select-gen-header-dir)))
     (ue--generate-class header-dir derived-class super-class)))
+
+(defun ue-generate-interface ()
+  "Generate a new Unreal interface for the project."
+  (interactive)
+  (when-let* ((project-name (projectile-project-name))
+	      (interface    (read-string
+			     "Interface name: "
+			     (concat project-name "Interface")))
+	      (header-dir   (ue--select-gen-header-dir)))
+    (ue--generate-interface header-dir interface)))
 
 (defun ue-jump-between-header-and-implementation ()
   "Jump between header and source files in the project."
@@ -924,6 +967,10 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (define-key map (kbd "i") #'ue-invalidate-cache)
     ;; Display a list of all files in a directory (that’s not necessarily a project).
     (define-key map (kbd "l") #'ue-find-file-in-directory)
+    ;; Generate a new project class.
+    (define-key map (kbd "n c") #'ue-generate-class)
+    ;; Generate a new project interface.
+    (define-key map (kbd "n i") #'ue-generate-interface)
     ;; Run `multi-occur' on all project buffers currently open.
     (define-key map (kbd "o") #'ue-multi-occur)
     ;; Run `UnrealHeaderTool' for the project to generate header and source files.
@@ -965,6 +1012,9 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (easy-menu-define ue-mode-menu map
       "Menu for ue-mode"
       '("UE"
+	["New class"                      ue-generate-class]
+	["New interface"                  ue-generate-interface]
+	"--"
 	["Find file"                      ue-find-file]
 	["Find directory"                 ue-find-dir]
         ["Find file in directory"         ue-find-file-in-directory]
@@ -980,7 +1030,6 @@ If the current buffer does not belong to a project, call `next-buffer'."
 	"--"
         ["Search in project using grep"   ue-grep]
         ["Search in project using ag"     ue-ag]
-        ["Replace in project"             ue-replace]
         ["Multi-occur in project"         ue-multi-occur]
 	"--"
 	["Compile project"                ue-compile-project]
