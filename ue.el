@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.5
+;; Version:   1.0.6
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -49,7 +49,8 @@
 ;; TODO: Project.Target.cs files
 ;; TODO: Config files (*.ini)
 
-;; Functions used to sort Unreal C++ keywords by length which is used in font locking
+;; Functions used to sort Unreal C++ keywords by length which is used
+;; in font locking
 (eval-and-compile
   (defun ue--c++-string-length< (a b) (< (length a) (length b)))
   (defun ue--c++-string-length> (a b) (not (ue--c++-string-length< a b))))
@@ -422,6 +423,14 @@ Return current target if ID is falsy."
    "\\*\\(Minibuf-[0-9]+\\|helm mini\\|helm projectile\\|scratch\\|Messages\\|clang*\\|lsp*\\)\\*"
    (buffer-name)))
 
+(defun ue--compile-project ()
+  "Compile project for the current build target.
+
+If there is no target set, prompt user to choose it and then compile."
+  (let ((compilation-read-command  nil)
+	(compilation-scroll-output t))
+    (projectile-compile-project nil)))
+
 ;;; Path helpers
 
 (defconst ue--path-separator "/"
@@ -468,20 +477,60 @@ COMPONENT could be a regexp."
 
 ;;; Class generation
 
-(defun ue--type-name-std-prefix (name)
-  "Return the standard Unreal type prefix for the given class NAME."
-  (substring name 0 1))
+(defun ue--class-std-prefix-p (prefix)
+  "Return non-nil if the given PREFIX is standard Unreal class prefix."
+  (or (string= prefix "U")
+      (string= prefix "A")))
+
+(defun ue--class-std-prefix (name)
+  "Return the standard Unreal prefix for the given class NAME."
+  (when name
+    (let ((first-letter (substring name 0 1)))
+      (when (ue--class-std-prefix-p first-letter)
+	first-letter))))
+
+(defun ue--has-std-class-prefix-p (name)
+  "Return non-nil if the given NAME has standard Unreal class prefix."
+  (ue--class-std-prefix name))
+
+(defun ue--class-actor-p (name)
+  "Return non-nil if the given class NAME is actor."
+  (string= "A" (ue--class-std-prefix name)))
 
 ;; TODO: Check if the file HAS std prefix
 (defun ue--type-name-sans-std-prefix (name)
-  "Drop standard Unreal type prefix from the NAME."
-  (substring name 1))
+  "Drop standard Unreal type prefix from the NAME if any."
+  (if (ue--has-std-class-prefix-p name)
+      (substring name 1)
+    name))
 
 (defun ue--type-generated-header-name (type)
   "Return the name of the `.generated.h' file for the given TYPE."
   (concat type ".generated.h"))
 
-(defvar ue--known-classes
+(defun ue--header-dir->source-dir (dir)
+  "Return the source directory from the given header DIR."
+  (let* ((path-components (ue--path-components dir))
+	 (access-idx      (seq-position path-components "Public")))
+    (if access-idx
+	(ue--path-from-components
+	 (seq-concatenate 'list
+			  (seq-subseq path-components 0 access-idx)
+			  '("Private")
+			  (seq-subseq path-components (+ 1 access-idx))))
+      dir)))
+
+(defun ue--rel-include-path (header)
+  "Return relative path to the HEADER which could be used to #include it."
+  (thread-first header
+    (ue--path-components)
+    (ue--path-components-after "Source")
+    (seq-rest)
+    (ue--path-components-after "Public")
+    (ue--path-components-after "Private")
+    (ue--path-from-components)))
+
+(defvar ue--std-classes
   '(("AActor"                    . "GameFramework/Actor.h")
     ("ACharacter"                . "GameFramework/Character.h")
     ("AGameModeBase"             . "GameFramework/GameModeBase.h")
@@ -495,21 +544,57 @@ COMPONENT could be a regexp."
     ("USceneComponent"           . "Components/SceneComponent.h")
     ("UObject"                   . "UObject/Object.h")))
 
-(defun ue--known-class-header (name)
-  "Return the header of the class with the given NAME."
-  (alist-get name ue--known-classes nil nil #'string=))
+;; TODO:  Refactor   all  standard  directory  and   file  operations,
+;; i.e.  "Config"  directory  location, "Source"  directory  location,
+;; location of the "DefaultGame.ini" file, etc.
+(defun ue--project-header-files ()
+    "Return a list of project header files."
+    (let ((source-directory (expand-file-name
+			     "Source"
+			     (ue-project-root))))
+      (directory-files-recursively source-directory ".*\\.h")))
 
-(defun ue--header-dir->source-dir (dir)
-  "Return the source directory from the given header DIR."
-  (let* ((path-components (ue--path-components dir))
-	 (access-idx (seq-position path-components "Public")))
-    (if access-idx
-	(ue--path-from-components
-	 (seq-concatenate 'list
-			  (seq-subseq path-components 0 access-idx)
-			  '("Private")
-			  (seq-subseq path-components (+ 1 access-idx))))
-      dir)))
+(defun ue--find-full-class-name (header-file)
+  "Return the full name of the class declared in the HEADER-FILE.
+
+The full class name includes Unreal class prefix (U|A).
+
+The function is not very realiable as it does simple regex search
+instead of parsing the file or using `lsp' protocol to get
+symbols defined in the file.  However, this should be enought for
+most scenarios."
+  (let* ((regex-tpl "\\s-*class\\s-+\\(?:[a-zA-Z_][0-9a-zA-Z_]*\\s-+\\)?\\([UA]%s\\)\\s-*:.*")
+	 (file-name (file-name-base header-file))
+	 (regex     (format regex-tpl file-name)))
+    (with-temp-buffer
+      (insert-file-contents header-file)
+      (let ((content (buffer-string)))
+	(when (string-match regex content)
+	    (match-string 1 content))))))
+
+(defun ue--project-classes ()
+  "Return an alist of project classes mapped to their header files.
+
+This one is not very realiable.  It searches for all the header
+files in the project and then uses their names as project file
+names.  But the class prefixes are unknown.  One can look for
+class name inside the files but get full class name from there
+but I'm not sure if its fast enough to do."
+  (let ((classes '()))
+    (seq-do (lambda (header)
+	      (when-let ((class-name (ue--find-full-class-name header))
+			 (include    (ue--rel-include-path header)))
+		(setq classes (push `(,class-name . ,include) classes))))
+	    (ue--project-header-files))
+    classes))
+
+(defun ue--known-classes ()
+  "Return alist of known classes."
+  (append ue--std-classes (ue--project-classes)))
+
+(defun ue--known-class-header (known-classes name)
+  "Return the header of the class with the given NAME from the KNOWN-CLASSES."
+  (alist-get name known-classes nil nil #'string=))
 
 (defun ue--api-macro-name ()
   "Return API export macro name for the project."
@@ -537,16 +622,6 @@ COMPONENT could be a regexp."
 			      lines)))
     (string-trim-left line copyright-line)))
 
-(defun ue--rel-include-path (header)
-  "Return relative path to the HEADER which could be used to #include it."
-  (thread-first header
-    (ue--path-components)
-    (ue--path-components-after "Source")
-    (seq-rest)
-    (ue--path-components-after "Public")
-    (ue--path-components-after "Private")
-    (ue--path-from-components)))
-
 (defun ue--gen-include (file)
   "Return C++ include directive for the FILE."
   (concat "#include \"" file "\""))
@@ -556,7 +631,7 @@ COMPONENT could be a regexp."
   (let* ((generated-h (ue--type-generated-header-name type))
 	 (headers     (append headers (list generated-h))))
     (string-join (thread-last headers
-		   (append '("CoreMinimal"))
+		   (append '("CoreMinimal.h"))
 		   (mapcar #'ue--gen-include))
 		 "\n")))
 
@@ -572,7 +647,8 @@ COMPONENT could be a regexp."
   "Return `CLASS' declaration that inherits from `SUPER-CLASS'.
 
 `API' is API export macro."
-  (let ((prefix (ue--type-name-std-prefix super-class)))
+  (let* ((prefix (ue--type-name-std-prefix super-class))
+	 (prefix (if prefix prefix "")))
     (string-join
      (list
       "UCLASS()\n"
@@ -639,24 +715,27 @@ relative one and uses it."
       (ue--gen-copyright copyright) "\n\n"
       (ue--gen-include header) "\n\n"))))
 
-(defun ue--generate-class (header-dir class super-class)
+(defun ue--generate-class (header-dir known-classes class super-class)
   "Create header and source files for the given `CLASS'.
 
-The class name should not include an Unreal prefix (A/U/S/I).
+The class name should not include an Unreal prefix (U|A).
 It will use prefix of its SUPER-CLASS.
+
+`KNOWN-CLASSES' is an alist of class-name->include-header pairs.
 
 The header will be generated in the HEADER-DIR.  The source will
 derive its location from the HEADER-DIR."
-  (let* ((source-dir   (ue--header-dir->source-dir header-dir))
-	 (header-file  (expand-file-name (concat class ".h")
-					 header-dir))
-	 (source-file  (expand-file-name (concat class ".cpp")
-					 source-dir))
-	 (api          (ue--api-macro-name))
-	 (super-header (ue--known-class-header super-class))
-	 (headers      (when super-header (list super-header)))
-	 (copyright    (ue--copyright))
-	 (copyright    (if copyright copyright "TODO: Copyright")))
+  (let* ((source-dir    (ue--header-dir->source-dir header-dir))
+	 (header-file   (expand-file-name (concat class ".h")
+					  header-dir))
+	 (source-file   (expand-file-name (concat class ".cpp")
+					  source-dir))
+	 (api           (ue--api-macro-name))
+	 (super-header  (ue--known-class-header known-classes
+						super-class))
+	 (headers       (when super-header (list super-header)))
+	 (copyright     (ue--copyright))
+	 (copyright     (if copyright copyright "TODO: Copyright")))
     (make-directory header-dir t)
     (make-directory source-dir t)
     (write-region (ue--gen-class-header
@@ -672,6 +751,12 @@ derive its location from the HEADER-DIR."
 		   copyright)
 		  ""
 		  source-file)
+    (when super-header
+      ;; `super-class' is a known class  and it should compile without
+      ;; issues.  We don't  compile automatically  if a  user inherits
+      ;; from a class we have not header for.
+      ;; TODO: What if compilation fails?
+      (ue--compile-project))
     (find-file-existing source-file)
     (find-file-existing header-file)))
 
@@ -681,8 +766,8 @@ derive its location from the HEADER-DIR."
 
 The interface name should not include an Unreal prefix (U/I).
 
-The header will be generated in the HEADER-DIR.  The source will
-derive its location from the HEADER-DIR."
+The header will be generated in the `HEADER-DIR'.  The source will
+derive its location from the `HEADER-DIR'."
   (let* ((source-dir   (ue--header-dir->source-dir header-dir))
 	 (header-file  (expand-file-name (concat interface ".h")
 					 header-dir))
@@ -704,20 +789,21 @@ derive its location from the HEADER-DIR."
 		   copyright)
 		  ""
 		  source-file)
+    ;; TODO: What if compilation fails? use `ignore-errors'?
+    (ue--compile-project)
     (find-file-existing source-file)
     (find-file-existing header-file)))
 
-(defun ue--select-gen-super-class ()
-  "Prompt a user to pick a super class."
-  (let ((classes (ue--alist-keys ue--known-classes)))
-    (completing-read
-     "Super class: "
-     classes
-     nil
-     'confirm
-     nil
-     nil
-     classes)))
+(defun ue--select-gen-super-class (classes)
+  "Prompt a user to pick a super class using the `CLASSES' as an completion list."
+  (completing-read
+   "Super class: "
+   classes
+   nil
+   'confirm
+   nil
+   nil
+   classes))
 
 (defun ue--c-ident-p (name)
   "Return non-nil if the given `NAME' is a valid C identifier."
@@ -730,7 +816,7 @@ derive its location from the HEADER-DIR."
 	 (project-name (projectile-project-name))
 	 (input        (read-string
 			"Derived class: "
-			(concat project-name base-name))))
+			nil)))
     (when (ue--c-ident-p input)
       input)))
 
@@ -744,11 +830,16 @@ derive its location from the HEADER-DIR."
 (defun ue-generate-class ()
   "Generate a new class for the project."
   (interactive)
-  (when-let* ((super-class   (ue--select-gen-super-class))
+  (when-let* ((known-classes (ue--known-classes))
+	      (super-class   (ue--select-gen-super-class
+			      (ue--alist-keys known-classes)))
 	      (derived-class (ue--select-gen-derived-class
 			      super-class))
 	      (header-dir    (ue--select-gen-header-dir)))
-    (ue--generate-class header-dir derived-class super-class)))
+    (ue--generate-class header-dir
+			known-classes
+			derived-class
+			super-class)))
 
 (defun ue-generate-interface ()
   "Generate a new Unreal interface for the project."
@@ -756,7 +847,7 @@ derive its location from the HEADER-DIR."
   (when-let* ((project-name (projectile-project-name))
 	      (interface    (read-string
 			     "Interface name: "
-			     (concat project-name "Interface")))
+			     nil))
 	      (header-dir   (ue--select-gen-header-dir)))
     (ue--generate-interface header-dir interface)))
 
@@ -899,9 +990,7 @@ For git projects `magit-status-internal' is used if available."
 
 If there is no target set, prompt user to choose it and then compile."
   (interactive)
-  (let ((compilation-read-command  nil)
-	(compilation-scroll-output t))
-    (projectile-compile-project nil)))
+  (ue--compile-project))
 
 (defun ue-run-project ()
   "Run project for the current build target.

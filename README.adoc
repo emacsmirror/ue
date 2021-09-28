@@ -362,11 +362,22 @@ project).
 
 [[ue-generate-class,`ue-generate-class`]]`ue-generate-class`::
 Create a new Unreal class for the project.
-You should compile the project after that to make auto-completion accept the new class.
+
+The command displays a list of  super classes it knows about but users
+can enter the  name of the super class manually.  The list consists of
+some of the standard predefined classes as well as project classes the
+command was able to find.
+
+Then the user  enters the name of the class;  selects the directory to
+put  the header  to, the  command uses  it to  derive the  source file
+location; and then the command creates the files.
+
+Finally, it compiles the project if  the user has chosen a super class
+from the list.
 
 [[ue-generate-interface,`ue-generate-interface`]]`ue-generate-interface`::
-Create a new Unreal interface for the project.
-You should compile the project after that to make auto-completion accept the new interface.
+Create  a  new  Unreal  interface  and compile  the  project  to  make
+auto-completion accept the new interface.
 
 [[ue-multi-occur,`ue-multi-occur`]]`ue-multi-occur`::
 Run {uri-multi-occur}[multi-occur]  on all project  buffers currently
