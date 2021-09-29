@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.6
+;; Version:   1.0.7
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -498,7 +498,7 @@ COMPONENT could be a regexp."
   (string= "A" (ue--class-std-prefix name)))
 
 ;; TODO: Check if the file HAS std prefix
-(defun ue--type-name-sans-std-prefix (name)
+(defun ue--class-name-sans-std-prefix (name)
   "Drop standard Unreal type prefix from the NAME if any."
   (if (ue--has-std-class-prefix-p name)
       (substring name 1)
@@ -531,7 +531,8 @@ COMPONENT could be a regexp."
     (ue--path-from-components)))
 
 (defvar ue--std-classes
-  '(("AActor"                    . "GameFramework/Actor.h")
+  '(
+    ("AActor"                    . "GameFramework/Actor.h")
     ("ACharacter"                . "GameFramework/Character.h")
     ("AGameModeBase"             . "GameFramework/GameModeBase.h")
     ("AGameStateBase"            . "GameFramework/GameStateBase.h")
@@ -542,7 +543,11 @@ COMPONENT could be a regexp."
     ("UActorComponent"           . "Components/ActorComponent.h")
     ("UBlueprintFunctionLibrary" . "Kismet/BlueprintFunctionLibrary.h")
     ("USceneComponent"           . "Components/SceneComponent.h")
-    ("UObject"                   . "UObject/Object.h")))
+    ("UObject"                   . "UObject/Object.h")
+    ("UCameraModifier"           . "Camera/CameraModifier.h")
+    ("UCameraShakeBase"          . "Camera/CameraShakeBase.h")
+    ("UCameraComponent"          . "Camera/CameraComponent.h")
+    ))
 
 ;; TODO:  Refactor   all  standard  directory  and   file  operations,
 ;; i.e.  "Config"  directory  location, "Source"  directory  location,
@@ -647,7 +652,7 @@ but I'm not sure if its fast enough to do."
   "Return `CLASS' declaration that inherits from `SUPER-CLASS'.
 
 `API' is API export macro."
-  (let* ((prefix (ue--type-name-std-prefix super-class))
+  (let* ((prefix (ue--class-std-prefix super-class))
 	 (prefix (if prefix prefix "")))
     (string-join
      (list
@@ -812,11 +817,10 @@ derive its location from the `HEADER-DIR'."
 
 (defun ue--select-gen-derived-class (super-class)
   "Prompt a user to enter a class name derived from SUPER-CLASS."
-  (let* ((base-name    (ue--type-name-sans-std-prefix super-class))
-	 (project-name (projectile-project-name))
-	 (input        (read-string
-			"Derived class: "
-			nil)))
+  (let* ((base-name (ue--class-name-sans-std-prefix super-class))
+	 (input     (read-string
+		     "Derived class: "
+		     (concat "My" base-name))))
     (when (ue--c-ident-p input)
       input)))
 
