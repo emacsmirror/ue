@@ -4,7 +4,7 @@
 # condition: (ue--yas-can-expand-p)
 # --
 /**
- * $3
+ * $5
  */
-UPROPERTY(VisibleDefaultsOnly, Category="Components")
-${1:USceneComponent}* ${2:My}Comp;
+UPROPERTY(Visible${1:Anywhere}, BlueprintReadOnly, Category="Components")
+${2:USceneComponent}* ${3:My}${4:Component};

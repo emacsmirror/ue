@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.8
+;; Version:   1.0.9
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -686,8 +686,14 @@ but I'm not sure if its fast enough to do."
     (concat "class " api " I" interface "\n")
     "{\n\tGENERATED_BODY()\n\npublic:\n};")))
 
-(defun ue--gen-class-header
-    (class super-class headers api copyright)
+(defun ue--gen-struct-declaration (name)
+  "Return declaration a struct with the given `NAME'."
+  (string-join
+   (list
+    (concat "USTRUCT()\nstruct " "F" name "\n")
+    "{\n\tGENERATED_BODY()\n};")))
+
+(defun ue--gen-class-header (class super-class headers api copyright)
   "Generate a header for the given `CLASS'.
 
 `SUPER-CLASS' is the name of the class to inherit from.
@@ -701,12 +707,9 @@ header."
 		(ue--gen-includes class headers) "\n\n"
 		(ue--gen-class-declaration class super-class api) "\n")))
 
-(defun ue--gen-interface-header
-    (interface api copyright)
+(defun ue--gen-interface-header (interface api copyright)
   "Generate a header for the given `INTERFACE'.
 
-`SUPER-CLASS' is the name of the class to inherit from.
-`HEADERS' is the list of include files.
 `API' is the export macro.
 `COPYRIGHT' is the copyright string to put to the beginning of the
 header."
@@ -716,6 +719,17 @@ header."
 		(ue--gen-includes interface '("UObject/Interface.h")) "\n\n"
 		(ue--gen-uinterface-declaration interface) "\n\n"
 		(ue--gen-iinterface-declaration interface api) "\n")))
+
+(defun ue--gen-struct-header (name copyright)
+  "Generate a header for a structure wit the given `NAME'.
+
+`COPYRIGHT' is the copyright string to put to the beginning of the
+header."
+  (string-join (list
+		(ue--gen-copyright copyright) "\n\n"
+		(ue--gen-pragma-once) "\n\n"
+		(ue--gen-includes name nil) "\n\n"
+		(ue--gen-struct-declaration name) "\n")))
 
 
 (defun ue--gen-source (header copyright)
@@ -808,6 +822,37 @@ derive its location from the `HEADER-DIR'."
     (find-file-existing source-file)
     (find-file-existing header-file)))
 
+(defun ue--generate-struct (header-dir name)
+  "Create header and source files for a Unreal structure with the given `NAME'.
+
+The struct name should not include an Unreal prefix `F'.
+
+The header will be generated in the `HEADER-DIR'.  The source will
+derive its location from the `HEADER-DIR'."
+  (let* ((source-dir   (ue--header-dir->source-dir header-dir))
+	 (header-file  (expand-file-name (concat name ".h")
+					 header-dir))
+	 (source-file  (expand-file-name (concat name ".cpp")
+					 source-dir))
+	 (copyright    (ue--copyright))
+	 (copyright    (or copyright "TODO: Copyright")))
+    (make-directory header-dir t)
+    (make-directory source-dir t)
+    (write-region (ue--gen-struct-header
+		   name
+		   copyright)
+		  ""
+		  header-file)
+    (write-region (ue--gen-source
+		   header-file
+		   copyright)
+		  ""
+		  source-file)
+    ;; TODO: What if compilation fails? use `ignore-errors'?
+    (ue--compile-project)
+    (find-file-existing source-file)
+    (find-file-existing header-file)))
+
 (defun ue--select-gen-super-class (classes)
   "Prompt a user to pick a super class using the `CLASSES' as an completion list."
   (completing-read
@@ -872,6 +917,16 @@ derive its location from the `HEADER-DIR'."
 			     nil))
 	      (header-dir   (ue--select-gen-header-dir)))
     (ue--generate-interface header-dir interface)))
+
+(defun ue-generate-struct ()
+  "Generate a new Unreal struct for the project."
+  (interactive)
+  (when-let* ((project-name (projectile-project-name))
+	      (name         (read-string
+			     "Struct name: "
+			     nil))
+	      (header-dir   (ue--select-gen-header-dir)))
+    (ue--generate-struct header-dir name)))
 
 (defun ue-jump-between-header-and-implementation ()
   "Jump between header and source files in the project."
@@ -1082,6 +1137,8 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (define-key map (kbd "n c") #'ue-generate-class)
     ;; Generate a new project interface.
     (define-key map (kbd "n i") #'ue-generate-interface)
+    ;; Generate a new project struct.
+    (define-key map (kbd "n s") #'ue-generate-struct)
     ;; Run `multi-occur' on all project buffers currently open.
     (define-key map (kbd "o") #'ue-multi-occur)
     ;; Generate project files.
@@ -1127,6 +1184,7 @@ If the current buffer does not belong to a project, call `next-buffer'."
       '("UE"
 	["New class"                      ue-generate-class]
 	["New interface"                  ue-generate-interface]
+	["New struct"                     ue-generate-struct]
 	"--"
 	["Find file"                      ue-find-file]
 	["Find directory"                 ue-find-dir]

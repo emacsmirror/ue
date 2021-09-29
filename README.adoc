@@ -66,10 +66,12 @@ In short, you can:
 
 - Compile Unreal Engine projects.
 - Run Unreal Engine projects.
+- Refresh {project-name} project files.
 - Switch between build configurations.
 - Run `UnrealHeaderTool` to refresh the code it generates.
 - Create an Unreal class.
 - Create an Unreal interface.
+- Create an Unreal struct.
 - Jump to a file in a project.
 - Jump to files at point in a project.
 - Jump to a directory in a project.
@@ -122,10 +124,10 @@ the future.
 
 |=====================================================================
 | Key | Description
-|`upc`| Component `UPROPERTY`
-|`upe`| `UPROPERTY(EditDefaultsOnly)`
-|`ups`| `TSubclassOf UPROPERTY`
-|`upv`| `UPROPERTY(VisibleEverywhere)`
+|`upc`| Component property
+|`upe`| Editable property
+|`ups`| `TSubclassOf` property
+|`upv`| Visible property
 |=====================================================================
 
 ==== UFUNCTION
@@ -366,22 +368,25 @@ project).
 
 [[ue-generate-class,`ue-generate-class`]]`ue-generate-class`::
 Create a new Unreal class for the project.
-
++
 The command displays a list of  super classes it knows about but users
 can enter the  name of the super class manually.  The list consists of
 some of the standard predefined classes as well as project classes the
 command was able to find.
-
++
 Then the user  enters the name of the class;  selects the directory to
 put  the header  to, the  command uses  it to  derive the  source file
 location; and then the command creates the files.
-
++
 Finally, it compiles the project if  the user has chosen a super class
 from the list.
 
 [[ue-generate-interface,`ue-generate-interface`]]`ue-generate-interface`::
 Create  a  new  Unreal  interface  and compile  the  project  to  make
 auto-completion accept the new interface.
+
+[[ue-generate-struct,`ue-generate-struct`]]`ue-generate-struct`::
+Create a new Unreal struct and compile the project.
 
 [[ue-multi-occur,`ue-multi-occur`]]`ue-multi-occur`::
 Run {uri-multi-occur}[multi-occur]  on all project  buffers currently
@@ -447,6 +452,7 @@ the prefix.
 |kbd:[C-c u l]       | <<ue-find-file-in-directory>>
 |kbd:[C-c u n c]     | <<ue-generate-class>>
 |kbd:[C-c u n i]     | <<ue-generate-interface>>
+|kbd:[C-c u n s]     | <<ue-generate-struct>>
 |kbd:[C-c u o]       | <<ue-multi-occur>>
 |kbd:[C-c u p g]     | <<ue-generate-project>>
 |kbd:[C-c u R]       | <<ue-uht-project>>
