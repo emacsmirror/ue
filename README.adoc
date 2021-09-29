@@ -318,6 +318,10 @@ Display a list of all project buffers currently open.
 Compile the project  for current build target.  If there  is no target
 set, prompt a user to select one and then compile the project.
 
+[[ue-generate-project,`ue-generate-project`]]`ue-generate-project`::
+Generate `ue.el` project  files.  Run this command if you  added a few
+source files and have an issue with autocompletion or code analysis.
+
 [[ue-find-dir,`ue-find-dir`]]`ue-find-dir`::
 Display  a list  of all  directories in  the project.   With a  prefix
 argument it will clear the cache first.
@@ -444,6 +448,7 @@ the prefix.
 |kbd:[C-c u n c]     | <<ue-generate-class>>
 |kbd:[C-c u n i]     | <<ue-generate-interface>>
 |kbd:[C-c u o]       | <<ue-multi-occur>>
+|kbd:[C-c u p g]     | <<ue-generate-project>>
 |kbd:[C-c u R]       | <<ue-uht-project>>
 |kbd:[C-c u s g]     | <<ue-grep>>
 |kbd:[C-c u s r]     | <<ue-ripgrep>>

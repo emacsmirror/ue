@@ -4,7 +4,7 @@
 
 ;; Author:    Oleksandr Manenko <seidfzehsd@use.startmail.com>
 ;; URL:       https://gitlab.com/unrealemacs/ue.el
-;; Version:   1.0.7
+;; Version:   1.0.8
 ;; Created:   26 August 2021
 ;; Keywords:  unreal engine, languages, tools
 ;; Package-Requires: ((emacs "26.1") (projectile "2.5.0"))
@@ -366,6 +366,15 @@ Return current target if ID is falsy."
   (ue-project-target-uht-command
    (or id
        (ue-current-project-build-target))))
+
+(defun ue-generate-project-command ()
+  "Return command used to generate project files."
+  (let ((build-sh (let-alist (ue-project-metadata) .Engine.Scripts.Build))
+	(uproject (let-alist (ue-project-metadata) .Project.File)))
+    (format
+     "\"%s\" -GenerateProjectFiles -UnrealEmacs -project=\"%s\""
+     build-sh
+     uproject)))
 
 ;; Copied from yasnippet-snippets
 (defconst ue-snippets-dir
@@ -831,6 +840,15 @@ derive its location from the `HEADER-DIR'."
 
 ;;; Interactive commands
 
+(defun ue-generate-project ()
+  "Generate project files."
+  (interactive)
+  (let ((compilation-read-command  nil)
+	(compilation-scroll-output t)
+	(command                   (ue-generate-project-command)))
+    (ue-save-project-buffers)
+    (compile command projectile-run-use-comint-mode)))
+
 (defun ue-generate-class ()
   "Generate a new class for the project."
   (interactive)
@@ -1066,6 +1084,8 @@ If the current buffer does not belong to a project, call `next-buffer'."
     (define-key map (kbd "n i") #'ue-generate-interface)
     ;; Run `multi-occur' on all project buffers currently open.
     (define-key map (kbd "o") #'ue-multi-occur)
+    ;; Generate project files.
+    (define-key map (kbd "p g") #'ue-generate-project)
     ;; Run `UnrealHeaderTool' for the project to generate header and source files.
     (define-key map (kbd "R") #'ue-uht-project)
     ;; Run grep on the files in the project.
@@ -1126,7 +1146,8 @@ If the current buffer does not belong to a project, call `next-buffer'."
         ["Multi-occur in project"         ue-multi-occur]
 	"--"
 	["Compile project"                ue-compile-project]
-	["Run project"                    ue-run-project]))
+	["Run project"                    ue-run-project]
+	["Refresh project"                ue-generate-project]))
     map)
   "Keymap for command `ue-mode'.")
 
